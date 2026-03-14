@@ -42,6 +42,81 @@ class Acciones:
         self.TICKS_ACCION = 5
         self.TICKS_COMPLETO = 30
 
+
+    def _accion_dormir(self, agente=None):
+        """Inicia actividad de dormir."""
+        if agente is None:
+            agente = self.simulador.agente_jugador
+        if not agente:
+            return False
+
+        if self.simulador.iniciar_actividad(agente, "durmiendo", duracion_ticks=self.TICKS_DORMIR):
+            print(f"{agente.nombre} se acuesta a dormir")
+            return True
+        return False
+
+    def _accion_comer(self, agente=None):
+        """Consume comida e inicia actividad de comer."""
+        if agente is None:
+            agente = self.simulador.agente_jugador
+        if not agente:
+            return False
+
+        if agente.inventario.get("comida", 0) <= 0:
+            print(f"{agente.nombre} no tiene comida")
+            return False
+
+        if self.simulador.iniciar_actividad(agente, "comiendo", duracion_ticks=self.TICKS_COMER):
+            agente.inventario["comida"] -= 1
+            return True
+        return False
+
+    def _accion_trabajar(self, agente=None):
+        """Acción de trabajo simple basada en experiencia."""
+        if agente is None:
+            agente = self.simulador.agente_jugador
+        if not agente:
+            return False
+
+        duracion = np.random.randint(4, 8)
+        if self.simulador.iniciar_actividad(agente, "trabajando", duracion_ticks=duracion):
+            if agente.experiencia.get("agricultura", 0) > 30:
+                produccion = np.random.randint(1, 4)
+                agente.inventario["comida"] = agente.inventario.get("comida", 0) + produccion
+                agente.experiencia["agricultura"] = agente.experiencia.get("agricultura", 0) + 0.5
+                print(f"{agente.nombre} trabaja en la granja: +{produccion} comida")
+            else:
+                ingresos = np.random.randint(3, 8)
+                agente.inventario["monedas"] = agente.inventario.get("monedas", 0) + ingresos
+                print(f"{agente.nombre} hace trabajos básicos: +{ingresos} monedas")
+            return True
+        return False
+
+    def _accion_socializar(self, agente=None):
+        """Interacción social básica con agentes cercanos."""
+        if agente is None:
+            agente = self.simulador.agente_jugador
+        if not agente:
+            return False
+
+        if not self.simulador.iniciar_actividad(agente, "socializando", duracion_ticks=1):
+            return False
+
+        vecinos = [
+            otro for otro in self.simulador.agentes
+            if otro is not agente and otro.vivo and self.simulador._distancia(agente.ubicacion, otro.ubicacion) <= 2
+        ]
+
+        if not vecinos:
+            print(f"{agente.nombre} intenta socializar pero no hay nadie cerca")
+            return True
+
+        otro_agente = np.random.choice(vecinos)
+        agente.actualizar_afinidad(otro_agente, "charla_amistosa")
+        otro_agente.actualizar_afinidad(agente, "charla_amistosa")
+        print(f"{agente.nombre} socializa con {otro_agente.nombre}")
+        return True
+
     def _accion_recolectar(self, agente=None):
         """
         Acción de recolectar - COMPLETAMENTE PROBABILÍSTICA
