@@ -188,30 +188,6 @@ class Simulador:
         """Delega la IA de NPCs al módulo de IA de agentes."""
         return self.ai_agentes.decidir(agente)
 
-    def _accion_dormir(self, agente):
-        """Delega acción al sistema de acciones."""
-        return self.acciones._accion_dormir(agente)
-
-    def _accion_comer(self, agente):
-        """Delega acción al sistema de acciones."""
-        return self.acciones._accion_comer(agente)
-
-    def _accion_trabajar(self, agente):
-        """Delega acción al sistema de acciones."""
-        return self.acciones._accion_trabajar(agente)
-
-    def _accion_recolectar(self, agente):
-        """Delega acción al sistema de acciones."""
-        return self.acciones._accion_recolectar(agente)
-
-    def _accion_socializar(self, agente):
-        """Delega acción al sistema de acciones."""
-        return self.acciones._accion_socializar(agente)
-
-    def _accion_descansar(self, agente):
-        """Delega acción al sistema de acciones."""
-        return self.acciones._accion_descansar(agente)
-
     def _procesar_reproduccion(self):
         """Procesar reproducción entre agentes"""
         # Buscar parejas potenciales
