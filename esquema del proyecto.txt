@@ -1,0 +1,21 @@
+simulador/
+├── main.py
+├── config.py
+├── mundo/
+│   ├── __init__.py
+│   ├── mundo.py
+│   └── mapa_hexagonal.py
+├── agentes/
+│   ├── __init__.py
+│   ├── agente.py
+│   ├── agente_jugador.py
+│   ├── agente_ia.py
+│   └── fisiologia.py
+├── sistema/
+│   ├── __init__.py
+│   ├── economia.py
+│   ├── genetica.py
+│   └── personalidad.py
+└── ui/
+    ├── __init__.py
+    └── interfaz.py

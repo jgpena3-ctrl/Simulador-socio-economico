@@ -1,0 +1,41 @@
+TBM
+Hombres: TMB=(10 * peso_kg)+(6.25 * altura_cm)-(5 * edad)+5
+Mujeres: TMB=(10 * peso_kg)+(6.25 * altura_cm)-(5 * edad)-161
+
+Ocupación del Agente 	Multiplicador (NAF)	Ejemplo de rol
+Sedentario             1.2	       Burócratas, comerciantes sentados, ancianos.
+Actividad Ligera       1.4 - 1.5	 Vendedores ambulantes, artesanos.
+Moderadamente Activo   1.6 - 1.7	 Mensajeros, guardias de ciudad, sirvientes.
+Muy Activo             1.8 - 1.9	 Agricultores, mineros, soldados en marcha.
+Extremo                2.0 - 2.4	 Leñadores, cargadores de muelle, atletas.
+
+IMC
+obeso > 30
+sobrepeso > 25
+normal 18.5-24.9
+bajopeso < 18.4
+
+Funcionamiento del sistema digestivo
+peso_kg = x
+energia
+
+descripcion del juego.
+Agentes:
+queremos crear un simulador socio economico multiagente donde tu controlas un solo agente durante toda su vida y los demas agentes serán controlados por IA, dos agentes del sexo opuesto pueden procrear y si es el primogenito del agente que tu controlas lo podras controlar tambien desde los 18, si tienes dos o mas agentes controlados por el player (padre, hijo) tendrá que elegir cada día que agente quiere controlar, los agentes tendras caracteristicas heredables, entrenables y de personalidad que usaremos las 16 personalidades tan famosa que hay por internet, entre las heredables tendremos: altura, belleza, color de ojos, color de piel, color de cabello. entre las entrenables estan todas las actividades en las que puede ganar experiencia cada que lo practica y va obteniendo mayor taza de exito o mejor calidad del producto elavorada y caracteristicas especificas que pueden mejorar conjuntos de actividades como: punteria, percepcion, inteligencia, y tambien otras caracteristicas fisicas entrenables y que cuentan con una distribucion normal es decir no son acumulables infinitamente porque decaen con la edad como lo son: fuerza (depende tamnbien de su altura y peso como base pero se puede entrenar), agilidad o fuerza exploxiva (depende inicialmente del IMC entre mas bajo mayor agilidad pero puede ser entrenable), resistencia o VO2max y otras caracteristicas ficiologicas como: IMC, TMB (Hombres: TMB=(10 * peso_kg)+(6.25 * altura_cm)-(5 * edad)+5, Mujeres: TMB=(10 * peso_kg)+(6.25 * altura_cm)-(5 * edad)-161), cansancio o sueño, hambre (los limites de saciedad se actualizan aumentando o disminullendo en funcion de si se superan o no esos limites en cada comida), sed, felicidad, tambien tendra un historial de de interacion social, cada que se cruce con otro agente y dependiendiendo las caracteristicas que comparten van ganado puntos de afinidad con la otra persona ponderado por la belleza, carisma y personalidad.
+
+IA para los agentes:
+la ficiologia de los agentes solo activaran señales de diferentes intensidades, digamos hambre 50%, desiento 40%, feliz 30%, y la IA desidirá basado en unos casos por su personalidad o estado ficiologico que actividad realizará, si decide acudir al hambre, dependiendo de su personalidad y los recursos que posea obtará por comprar comida hecha, comprar ingredientes y preparar, o buscar ingredientes, segun sus personalidad tambien planeará para el futuro que tanto trabajará descansará o de divertirá.
+
+environment:
+se tratará de una reticula hezagonal donde cada grilla corresponde a una gran area al que se puede aceder como hacer zoom, en primera face se diseñará el juego para la reticula general, el la reticula general cada accion consume un tick de 30min, las acciones posibles son: desplazarce a otra casilla, cazar, talar, recolectar, cocinar, dormir, vender, fabricar, el exito de las acciones estan marcadas por las cualidades del agente y/o la disponibilidad del terreno, acciones como cazar depende de la prob de encontrar un animal* prob de capturarlo o la punteria, en cambio cocinar o fabricar simpre se obtendra el producto pero tendra diferente calidad dependiendo la destresa o esperiencia del agente.
+
+el perimetro del mapa general lo podemos hacer de 32 casillas, porque como las casas estarán en el centro del mapa y para andar se requieren 30 min por casilla a un agente le costaría 8 horas llegar a una orilla y atras 8 horas para regresarse antes de cansarse para dormir, cada casilla tendra informacion del todo lo que posee, el numero de arboles, arboles jovenes, arbustos, animales
+
+ademas reservaremos la casilla central para viviendas y las 6 aledañas para actividades de trabajo y economicas como, granjas, mercado, herrería, cocina, carpintería, cantería
+
+los limites del mapa seran simpre rico en recursos de donde se propagaran los arboles y animales, la forma de propagacion estará definida por el numero de casillas que tiene una macro casilla, y estimamos en cada casilla vacia cuantos arboles en promedio la rodean multiplicado por la prob de que el arbol coloque una semila, e igual forma para que se añadan semilas entre las froteras de las macro casillas se hacen los calculos coresponmdientes, los animales se reproduciran si estan en edad reproductiva y si coinciden en una macro casilla, se estima la prob de que coincidan un macho con una hembra y estos pueden deambular entre macro casillas a voluntad
+
+la idea es crear un ecosistema con todos los animales, vacas, obejas, gallinas, ratones, serpientes, perros, gatos, cerdos, conejos
+
+#control de tiempo de sueño
+una accion de dormir ocupa 3 tick de 30 min en estado de sueño (siclo de sueño), se recupera el doble de energia por la noche, (20-06) para la ia de los agentes despertará al agente de forma probabilistica dependiendo que porcentaje de energia ya tiene el agente ponderado por el porcentaje calculado de la diferencia absoluta de la ultima hora en que se despertó y la hora actual siendo 12 horas de diferencia un 0% y la hora exacta 100%, para la hora de dormir tambien podemos usar la misma ecuacion pero inversa, la hora en que se acostó por ultima vez por 1 - la energia en porcentaje.

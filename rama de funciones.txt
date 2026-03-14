@@ -1,0 +1,11 @@
+__main__
+├── simulador = Simulador()
+└── simulador.ejecutar()
+│    ├── _manejar_teclas()
+│    │    ├── ejecutar_tick()
+     │    │    ├── mapa.actualizar_ecosistema()
+│    │    ├── _accion_comer()
+│    │    ├── _accion_dormir()
+│    │    └── _accion_recolectar()
+│    ├── ejecutar_tick()
+│    ├── dibujar()
