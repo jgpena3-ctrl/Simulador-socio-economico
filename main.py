@@ -1,11 +1,12 @@
-from agentes.agente import Agente, Personalidad
+from agentes.agente import Agente
+from agentes.ai_agentes import AIAgentes
 #from agentes.agente_jugador import AgenteJugador
-from configu.categorias import COLORES_CATEGORIAS
 from menuContestual import MenuContextual
 from menu_inventario import MenuInventario
 from mundo.camara import Camara
 from mundo.mapa_hexagonal import MapaHexagonal
 from ui.menu_mercado import MenuMercado
+from ui.interfaz import InterfazSimulador
 from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners
 from sistema.economia import SistemaEconomico
 from sistema.acciones import Acciones
@@ -34,6 +35,8 @@ class Simulador:
         self.economia = SistemaEconomico(self)
         self.acciones = Acciones(self)
         self.menu_mercado = MenuMercado(self)
+        self.ai_agentes = AIAgentes(self)
+        self.interfaz = InterfazSimulador(self)
 
         # Agentes
         self.agentes = []
@@ -182,78 +185,32 @@ class Simulador:
         print(f"  Tick completado")
 
     def _decision_ia(self, agente):
-        """IA para agentes no controlados - CORREGIDO"""
-        # Sistema de necesidades priorizadas
-        if agente.fisiologia.necesita_dormir():
-            self._accion_dormir(agente)
-            print(f"{agente.nombre} duerme (IA)")
-
-        elif agente.fisiologia.necesita_comer():
-            # Verificar si tiene comida primero
-            if agente.inventario.get("comida", 0) > 0:
-                agente.consumir()  # <-- Sin parámetros
-                print(f"{agente.nombre} come (IA)")
-            else:
-                # Si no tiene comida, recolectar
-                self._accion_recolectar(agente)
-                print(f"{agente.nombre} busca comida (IA)")
-
-        else:
-            # Actividades según personalidad
-            if agente.personalidad in [Personalidad.ESTJ, Personalidad.ENTJ]:
-                # Personalidades trabajadoras
-                self._accion_trabajar(agente)
-                print(f"{agente.nombre} trabaja (IA)")
-
-            elif agente.personalidad in [Personalidad.ENFP, Personalidad.ESFP]:
-                # Personalidades sociales
-                self._accion_socializar(agente)
-                print(f"{agente.nombre} socializa (IA)")
-
-            else:
-                # Actividad aleatoria
-                acciones = [self._accion_recolectar, self._accion_socializar,
-                           self._accion_descansar]
-                accion_elegida = np.random.choice(acciones)
-                accion_elegida(agente)
-                print(f"{agente.nombre} {accion_elegida.__name__} (IA aleatoria)")
+        """Delega la IA de NPCs al módulo de IA de agentes."""
+        return self.ai_agentes.decidir(agente)
 
     def _accion_dormir(self, agente):
-        """Acción de dormir - Ahora consume tiempo"""
-        if self.iniciar_actividad(agente, "durmiendo", duracion_ticks=3):  # 8 ticks = 4 horas
-            print(f"{agente.nombre} se acuesta a dormir")
+        """Delega acción al sistema de acciones."""
+        return self.acciones._accion_dormir(agente)
 
     def _accion_comer(self, agente):
-        """Acción de comer - Consume tiempo"""
-        if agente.inventario.get("comida", 0) > 0:
-            if self.iniciar_actividad(agente, "comiendo", duracion_ticks=1):  # 1 hora
-                agente.inventario["comida"] -= 1
-        else:
-            print(f"{agente.nombre} no tiene comida")
+        """Delega acción al sistema de acciones."""
+        return self.acciones._accion_comer(agente)
 
     def _accion_trabajar(self, agente):
-        """Acción de trabajar"""
-        duracion = np.random.randint(4, 8)  # 2-4 horas
-        if self.iniciar_actividad(agente, "trabajando", duracion_ticks=duracion):
-            # Trabajar según habilidades
-            if agente.experiencia["agricultura"] > 30:
-                produccion = np.random.randint(1, 4)
-                agente.inventario["comida"] += produccion
-                agente.experiencia["agricultura"] += 0.5
-                print(f"{agente.nombre} trabaja en la granja: +{produccion} comida")
-            else:
-                ingresos = np.random.randint(3, 8)
-                agente.inventario["monedas"] += ingresos
-                print(f"{agente.nombre} hace trabajos básicos: +{ingresos} monedas")
+        """Delega acción al sistema de acciones."""
+        return self.acciones._accion_trabajar(agente)
 
     def _accion_recolectar(self, agente):
-        return None
+        """Delega acción al sistema de acciones."""
+        return self.acciones._accion_recolectar(agente)
 
-    def _accion_socializar(self, a5gente):
-        return None
+    def _accion_socializar(self, agente):
+        """Delega acción al sistema de acciones."""
+        return self.acciones._accion_socializar(agente)
 
     def _accion_descansar(self, agente):
-        return None
+        """Delega acción al sistema de acciones."""
+        return self.acciones._accion_descansar(agente)
 
     def _procesar_reproduccion(self):
         """Procesar reproducción entre agentes"""
@@ -346,38 +303,8 @@ class Simulador:
         pygame.display.flip()
 
     def _color_para_hex(self, hexagono):
-        """
-        Determina color del hexágono con prioridad:
-        1. Color personalizado (si existe)
-        2. Categoría (si existe)
-        3. Lógica por recursos (default)
-        """
-
-        # 1. Color personalizado (máxima prioridad)
-        if hasattr(hexagono, 'color_personalizado') and hexagono.color_personalizado:
-            return hexagono.color_personalizado
-
-        # 2. Color por categoría
-        if hasattr(hexagono, 'categoria') and hexagono.categoria in COLORES_CATEGORIAS:
-            return COLORES_CATEGORIAS[hexagono.categoria]
-
-        # 3. Lógica original (sin romper nada)
-        if hexagono.q == 0 and hexagono.r == 0:
-            return (120, 120, 220)  # Centro
-
-        # Zona económica (adyacentes al centro)
-        if abs(hexagono.q) + abs(hexagono.r) + abs(-hexagono.q - hexagono.r) <= 2:
-            return (180, 180, 100)  # Amarillo verdoso
-
-        # Áreas con árboles
-        if hexagono.arboles > 10:
-            verde = min(200, 50 + hexagono.arboles * 5)
-            return (34, 139, 34)  # Verde bosque
-        elif hexagono.arboles > 3:
-            return (50, 150, 50)  # Verde claro
-
-        # Tierra normal
-        return (110, 90, 70)
+        """Delega colores de render al módulo de interfaz."""
+        return self.interfaz.color_para_hex(hexagono)
 
     def _dibujar_debug_clics(self):
         """Dibujar información de debug de clics"""
@@ -490,68 +417,8 @@ class Simulador:
                         (mouse_x, mouse_y - 10), (mouse_x, mouse_y + 10), 1)
 
     def _dibujar_ui(self):
-        """Dibujar interfaz con controles de cámara"""
-        if not self.agente_jugador:
-            return
-
-        agente = self.agente_jugador
-
-        # Panel izquierdo: Estado
-        info_agente = [
-            f"Jugador: {agente.nombre}",
-            f"Ubicación: {agente.ubicacion}",
-            f"Hambre: {agente.fisiologia.combustible:.3f}%",
-            f"Energía: {agente.fisiologia.energia:.0f}%",
-            f"Cansancio: {agente.fisiologia.cansancio:.0f}%",
-            f"Comida: {agente.inventario.get('comida', 0)}",
-            f"Agua: {agente.inventario.get('agua', 0)}"
-        ]
-
-        y = 10
-        for texto in info_agente:
-            superficie = self.font.render(texto, True, (255, 255, 255))
-            self.pantalla.blit(superficie, (10, y))
-            y += 25
-
-        # Panel central: Cámara y tiempo
-        estado_camara = self.camara.get_estado()
-        info_camara = [
-            f"Día {self.dia}, Año {self.anno}",
-            f"Hora: {self.hora:02d}:{self.minutos:02d}",
-            f"Tick: {self.tick}",
-            f"Cámara: {estado_camara['zoom_percent']:.0f}% zoom",
-            f"Seguir: {'ON' if self.seguir_jugador else 'OFF'}",
-            f"Estado: {'MOVIÉNDOSE' if self.moviendo_agente else 'LISTO'}"
-        ]
-
-        y = self.alto - len(info_camara) * 25 - 10
-        for texto in info_camara:
-            superficie = self.font.render(texto, True, (200, 200, 255))
-            self.pantalla.blit(superficie, (self.ancho // 2 - 150, y))
-            y += 25
-
-        # Panel derecho: Controles
-        controles = [
-            "=== CONTROLES ===",
-            "WASD/Flechas: Mover cámara",
-            "Rueda mouse: Zoom",
-            "Z/X: Zoom in/out",
-            "R: Reset zoom",
-            "HOME: Centrar jugador",
-            "F: Alternar seguir",
-            "CLIC IZQ: Menú casilla",
-            "CLIC DER: Cancelar",
-            "C: Comer",
-            "P: Pausa",
-            "ESPACIO: Tick manual",
-            "ESC: Salir"
-        ]
-
-        y = 10
-        for texto in controles:
-            superficie = self.font.render(texto, True, (200, 200, 200))
-            self.pantalla.blit(superficie, (self.ancho - 250, y))
-            y += 25
+        """Delega la UI al módulo de interfaz."""
+        return self.interfaz.dibujar_ui()
 
     def _dibujar_ruta(self):
         """Dibujar ruta usando la cámara"""
