@@ -1,5 +1,6 @@
 import logging
 import config
+import balance
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -54,13 +55,13 @@ class Fisiologia:
         self.agua_consumida_hoy = 0  # ml
 
         # Requerimientos diarios (varían según actividad)
-        self.agua_necesaria = 2500  # ml/día base
+        self.agua_necesaria = balance.AGUA_NECESARIA_BASE  # ml/día base
 
         # Tasa de consumo por tick (30 min)
         self.agua_por_tick = self.agua_necesaria / 48
 
         # Decaimiento por edad (por año)
-        self.factor_deca_por_año = 0.003  # 0.3% anual después de cierta edad
+        self.factor_deca_por_año = balance.FACTOR_DECAIMIENTO_ANUAL  # 0.3% anual después de cierta edad
 
     def actualizar_tick_30min(self, nuevo_día, nuevo_año):
         """Actualiza fisiología cada 30 minutos"""
@@ -265,7 +266,7 @@ class Fisiologia:
 
     def _perdida_entrenamiento_diaria(self):
         """Pérdida diaria de entrenamiento si no se practica"""
-        tasa_perdida = 0.01  # 1% por día sin practicar
+        tasa_perdida = balance.PERDIDA_ENTRENAMIENTO_DIARIA  # 1% por día sin practicar
 
         # Verificar si hubo actividad relacionada
         if not self._ejercio_fuerza_hoy():

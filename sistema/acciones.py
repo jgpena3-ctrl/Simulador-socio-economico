@@ -5,6 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 # acciones.py
 import config
+import balance
 import math
 import numpy as np
 import inspect
@@ -33,20 +34,20 @@ def rastrear_llamadas(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 class Acciones:
-    TICKS_BUSCAR = 1
-    TICKS_RECOLECTAR = 1
-    TICKS_CAZAR = 1
-    TICKS_TALAR = 2
-    TICKS_DORMIR = 3
-    TICKS_DESCANSAR = 1
-    TICKS_COMER = 1
-    TICKS_BEBER = 1
+    TICKS_BUSCAR = balance.TICKS_BUSCAR
+    TICKS_RECOLECTAR = balance.TICKS_RECOLECTAR
+    TICKS_CAZAR = balance.TICKS_CAZAR
+    TICKS_TALAR = balance.TICKS_TALAR
+    TICKS_DORMIR = balance.TICKS_DORMIR
+    TICKS_DESCANSAR = balance.TICKS_DESCANSAR
+    TICKS_COMER = balance.TICKS_COMER
+    TICKS_BEBER = balance.TICKS_BEBER
 
     def __init__(self, simulador: Any) -> None:
         self.simulador = simulador  # Referencia al simulador
-        self.TICKS_BUSQUEDA = 1
-        self.TICKS_ACCION = 5
-        self.TICKS_COMPLETO = 30
+        self.TICKS_BUSQUEDA = balance.TICKS_BUSQUEDA_INTERNA
+        self.TICKS_ACCION = balance.TICKS_ACCION_INTERNA
+        self.TICKS_COMPLETO = balance.TICKS_COMPLETO
 
 
     def _accion_dormir(self, agente: Any = None) -> bool:
@@ -84,7 +85,7 @@ class Acciones:
         if not agente:
             return False
 
-        duracion = np.random.randint(4, 8)
+        duracion = np.random.randint(balance.TRABAJO_DURACION_MIN, balance.TRABAJO_DURACION_MAX)
         if self.simulador.iniciar_actividad(agente, "trabajando", duracion_ticks=duracion):
             if agente.experiencia.get("agricultura", 0) > 30:
                 produccion = np.random.randint(1, 4)
@@ -105,7 +106,7 @@ class Acciones:
         if not agente:
             return False
 
-        if not self.simulador.iniciar_actividad(agente, "socializando", duracion_ticks=1):
+        if not self.simulador.iniciar_actividad(agente, "socializando", duracion_ticks=balance.SOCIALIZAR_DURACION):
             return False
 
         vecinos = [
