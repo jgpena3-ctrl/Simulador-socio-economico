@@ -5,13 +5,6 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from types import SimpleNamespace
 
-import types
-
-if "numpy" not in sys.modules:
-    numpy_stub = types.ModuleType("numpy")
-    numpy_stub.random = types.SimpleNamespace(random=lambda: 0.0, randint=lambda *args, **kwargs: 0, choice=lambda seq: seq[0])
-    sys.modules["numpy"] = numpy_stub
-
 from sistema.acciones import Acciones
 
 
