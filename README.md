@@ -255,3 +255,18 @@ Incluye estadísticas de precios, consulta de ofertas y publicación de nuevas o
 - Árbol genealógico
 - Eventos aleatorios
 - Multi-jugador (?)
+
+---
+
+## 7. Tipado estático gradual (opcional)
+
+Se incorporó tipado base en módulos de dominio (`agentes/agente.py`, `sistema/economia.py`, `sistema/acciones.py`) para mejorar contratos internos sin romper compatibilidad.
+
+Para validarlo localmente de forma opcional:
+
+```bash
+pip install mypy
+mypy agentes/agente.py sistema/economia.py sistema/acciones.py
+```
+
+También se incluye configuración base en `mypy.ini` para adoptar el chequeo de forma incremental.
