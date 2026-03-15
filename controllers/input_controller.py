@@ -1,6 +1,9 @@
+import logging
 import math
 import pygame
 from utils.hex_math import pixel_to_axial, axial_round
+
+logger = logging.getLogger(__name__)
 
 
 class InputController:
@@ -40,29 +43,29 @@ class InputController:
 
         if tecla == pygame.K_p:
             sim.pausado = not sim.pausado
-            print(f"Juego {'pausado' if sim.pausado else 'reanudado'}")
+            logger.debug(f"Juego {'pausado' if sim.pausado else 'reanudado'}")
         elif tecla == pygame.K_SPACE and sim.pausado:
             sim.ejecutar_tick()
-            print("Tick manual ejecutado")
+            logger.debug("Tick manual ejecutado")
         elif tecla == pygame.K_c and sim.agente_jugador:
             sim.agente_jugador.consumir()
-            print(f"{sim.agente_jugador.nombre} comió")
+            logger.debug(f"{sim.agente_jugador.nombre} comió")
         elif tecla == pygame.K_f:
             sim.seguir_jugador = not sim.seguir_jugador
-            print(f"Seguir jugador: {'ON' if sim.seguir_jugador else 'OFF'}")
+            logger.debug(f"Seguir jugador: {'ON' if sim.seguir_jugador else 'OFF'}")
         elif tecla == pygame.K_z:
             sim.camara.zoom_in()
-            print(f"Zoom: {sim.camara.escala:.1f}x")
+            logger.debug(f"Zoom: {sim.camara.escala:.1f}x")
         elif tecla == pygame.K_x:
             sim.camara.zoom_out()
-            print(f"Zoom: {sim.camara.escala:.1f}x")
+            logger.debug(f"Zoom: {sim.camara.escala:.1f}x")
         elif tecla == pygame.K_r:
             sim.camara.escala = 1.0
-            print("Zoom reseteado")
+            logger.debug("Zoom reseteado")
         elif tecla == pygame.K_HOME and sim.agente_jugador:
             q, r = sim.agente_jugador.ubicacion
             sim.camara.centrar_en(q * 1.5, r * math.sqrt(3))
-            print("Centrado en jugador")
+            logger.debug("Centrado en jugador")
         elif tecla == pygame.K_ESCAPE:
             sim.ejecutando = False
 
@@ -78,19 +81,19 @@ class InputController:
             casilla = (q_round, r_round)
 
             if casilla in sim.mapa.hexagonos:
-                print(f"\nCasilla seleccionada: {casilla}")
+                logger.debug(f"\nCasilla seleccionada: {casilla}")
                 sim.menu.mostrar(evento.pos, casilla)
                 sim._mostrar_info_casilla(casilla)
             else:
-                print(f"Casilla {casilla} fuera del mapa")
+                logger.debug(f"Casilla {casilla} fuera del mapa")
                 sim.menu.ocultar()
 
         elif evento.button == 3:
-            print("Clic derecho: Cancelar")
+            logger.debug("Clic derecho: Cancelar")
             sim.menu.ocultar()
 
             if sim.moviendo_agente:
-                print("Movimiento cancelado")
+                logger.debug("Movimiento cancelado")
                 sim.moviendo_agente = False
                 sim.ruta_actual = []
                 if sim.agente_jugador:

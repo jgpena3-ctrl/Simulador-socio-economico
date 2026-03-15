@@ -29,3 +29,8 @@ HEX_SIZE = 15  # Radio del hexágono (de centro a vértice)
 HEX_FLAT = True  # True = hexágonos planos-arriba (lados horizontales)
 HEX_WIDTH = HEX_SIZE * 2  # Ancho total
 HEX_HEIGHT = HEX_SIZE * math.sqrt(3)  # Altura total
+
+# Logging
+LOG_LEVEL = "INFO"
+LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+

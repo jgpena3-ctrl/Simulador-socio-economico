@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 # acciones.py
 import config
 import math
@@ -16,11 +19,11 @@ def rastrear_llamadas(func):
         frame = inspect.currentframe()
         frame_llamada = inspect.getouterframes(frame, 2)[1]
 
-        print(f"⚡ {func.__name__} fue llamado desde:")
-        print(f"   📁 Archivo: {frame_llamada.filename}")
-        print(f"   📍 Línea: {frame_llamada.lineno}")
-        print(f"   🔧 Función: {frame_llamada.function}")
-        print(f"   📝 Código: {frame_llamada.code_context[0].strip() if frame_llamada.code_context else 'N/A'}")
+        logger.debug(f"⚡ {func.__name__} fue llamado desde:")
+        logger.debug(f"   📁 Archivo: {frame_llamada.filename}")
+        logger.debug(f"   📍 Línea: {frame_llamada.lineno}")
+        logger.debug(f"   🔧 Función: {frame_llamada.function}")
+        logger.debug(f"   📝 Código: {frame_llamada.code_context[0].strip() if frame_llamada.code_context else 'N/A'}")
 
         return func(*args, **kwargs)
     return wrapper
@@ -51,7 +54,7 @@ class Acciones:
             return False
 
         if self.simulador.iniciar_actividad(agente, "durmiendo", duracion_ticks=self.TICKS_DORMIR):
-            print(f"{agente.nombre} se acuesta a dormir")
+            logger.debug(f"{agente.nombre} se acuesta a dormir")
             return True
         return False
 
@@ -63,7 +66,7 @@ class Acciones:
             return False
 
         if agente.inventario.get("comida", 0) <= 0:
-            print(f"{agente.nombre} no tiene comida")
+            logger.debug(f"{agente.nombre} no tiene comida")
             return False
 
         if self.simulador.iniciar_actividad(agente, "comiendo", duracion_ticks=self.TICKS_COMER):
@@ -84,11 +87,11 @@ class Acciones:
                 produccion = np.random.randint(1, 4)
                 agente.inventario["comida"] = agente.inventario.get("comida", 0) + produccion
                 agente.experiencia["agricultura"] = agente.experiencia.get("agricultura", 0) + 0.5
-                print(f"{agente.nombre} trabaja en la granja: +{produccion} comida")
+                logger.debug(f"{agente.nombre} trabaja en la granja: +{produccion} comida")
             else:
                 ingresos = np.random.randint(3, 8)
                 agente.inventario["monedas"] = agente.inventario.get("monedas", 0) + ingresos
-                print(f"{agente.nombre} hace trabajos básicos: +{ingresos} monedas")
+                logger.debug(f"{agente.nombre} hace trabajos básicos: +{ingresos} monedas")
             return True
         return False
 
@@ -108,13 +111,13 @@ class Acciones:
         ]
 
         if not vecinos:
-            print(f"{agente.nombre} intenta socializar pero no hay nadie cerca")
+            logger.debug(f"{agente.nombre} intenta socializar pero no hay nadie cerca")
             return True
 
         otro_agente = np.random.choice(vecinos)
         agente.actualizar_afinidad(otro_agente, "charla_amistosa")
         otro_agente.actualizar_afinidad(agente, "charla_amistosa")
-        print(f"{agente.nombre} socializa con {otro_agente.nombre}")
+        logger.debug(f"{agente.nombre} socializa con {otro_agente.nombre}")
         return True
 
     def _accion_recolectar(self, agente=None):
@@ -136,10 +139,10 @@ class Acciones:
             # Obtener información de la macro-casilla actual
             hex_info = self.simulador.mapa.hexagonos.get(agente.ubicacion)
             if not hex_info:
-                print("Error: Casilla no encontrada")
+                logger.debug("Error: Casilla no encontrada")
                 return
 
-            print(f"\n=== RECOLECTANDO en macro-casilla {agente.ubicacion} ===")
+            logger.debug(f"\n=== RECOLECTANDO en macro-casilla {agente.ubicacion} ===")
 
             # 1. PROBABILIDAD DE ENCONTRAR algo para recolectar
             # Basado en recursos TOTALES de la macro-casilla
@@ -156,14 +159,14 @@ class Acciones:
             prom_frutos = total_frutos / total_vegetacion
 
             if (total_arbustos == 0 and total_arboles == 0) or total_frutos == 0:
-                print("Esta macro-casilla no tiene recursos para recolectar")
+                logger.debug("Esta macro-casilla no tiene recursos para recolectar")
                 ticks += self.TICKS_BUSQUEDA
                 continue
 
-            print(f"Recursos en esta macro-casilla:")
-            print(f"  - Arbustos: {total_arbustos}")
-            print(f"  - Árboles: {total_arboles}")
-            print(f"  - Frutos: {total_frutos}")
+            logger.debug(f"Recursos en esta macro-casilla:")
+            logger.debug(f"  - Arbustos: {total_arbustos}")
+            logger.debug(f"  - Árboles: {total_arboles}")
+            logger.debug(f"  - Frutos: {total_frutos}")
 
             # Probabilidad de encontrar algo = densidad de recursos
             ''' A mayor densidad, más probable encontrar,
@@ -175,18 +178,18 @@ class Acciones:
             prob_ninguno = favorables / totales
             prob_encontrar = 1 - prob_ninguno
 
-            print(f"Probabilidad de encontrar algo: {prob_encontrar*100:.1f}%")
+            logger.debug(f"Probabilidad de encontrar algo: {prob_encontrar*100:.1f}%")
 
             # Tirar dados para ver si encuentra
             if np.random.random() > prob_encontrar:
-                print("❌ No encontraste nada para recolectar después de buscar")
+                logger.debug("❌ No encontraste nada para recolectar después de buscar")
                 # Pequeña ganancia de experiencia
                 agente.experiencia["recolectar"] = min(100,
                     agente.experiencia.get("recolectar", 0) + 0.2)
                 ticks += self.TICKS_BUSQUEDA
                 continue
 
-            print("✅ ¡Encontraste algo para recolectar!")
+            logger.debug("✅ ¡Encontraste algo para recolectar!")
 
             # 2. DETERMINAR QUÉ ENCONTRÓ
             # Aleatorio basado en proporción de recursos
@@ -198,7 +201,7 @@ class Acciones:
 
             tipo_encontrado = np.random.choice(opciones)
 
-            print(f"Encontraste: {tipo_encontrado}")
+            logger.debug(f"Encontraste: {tipo_encontrado}")
 
             # 3. CALIDAD DE LA RECOLECCIÓN (éxito)
             # Basado en experiencia del agente
@@ -209,11 +212,11 @@ class Acciones:
             # 4. CANTIDAD RECOLECTADA
             if tipo_encontrado == "arbusto":
                 agente.inventario["fruta"] = agente.inventario.get("fruta", 0) + cantidad
-                print(f"✅ Recolectaste {cantidad} frutas de arbustos!")
+                logger.debug(f"✅ Recolectaste {cantidad} frutas de arbustos!")
 
             else:  # árbol
                 agente.inventario["fruta"] = agente.inventario.get("fruta", 0) + cantidad
-                print(f"✅ Encontraste {cantidad} frutas en los árboles!")
+                logger.debug(f"✅ Encontraste {cantidad} frutas en los árboles!")
 
             # 5. GANANCIA DE EXPERIENCIA
             ganancia_exp = 0.01
@@ -229,7 +232,7 @@ class Acciones:
         )
 
     def _accion_cazar(self, agente=None):
-        print("Acción: Cazar animal")
+        logger.debug("Acción: Cazar animal")
         """
         Acción de cazar - COMPLETAMENTE PROBABILÍSTICA
         """
@@ -248,24 +251,24 @@ class Acciones:
             # Obtener información de la macro-casilla actual
             hex_info = self.simulador.mapa.hexagonos.get(agente.ubicacion)
             if not hex_info:
-                print("Error: Casilla no encontrada")
+                logger.debug("Error: Casilla no encontrada")
                 return
 
-            print(f"\n=== CAZANDO en macro-casilla {agente.ubicacion} ===")
+            logger.debug(f"\n=== CAZANDO en macro-casilla {agente.ubicacion} ===")
 
             # 1. PROBABILIDAD DE ENCONTRAR animales
             # Calcular total de animales en la macro-casilla
             if not hex_info.animales or sum(hex_info.animales.values()) == 0:
-                print("Esta macro-casilla no tiene animales")
+                logger.debug("Esta macro-casilla no tiene animales")
                 ticks += self.TICKS_BUSQUEDA
                 continue
 
             total_animales = sum(hex_info.animales.values())
 
-            print(f"Animales en esta macro-casilla: {total_animales}")
+            logger.debug(f"Animales en esta macro-casilla: {total_animales}")
             for animal, cantidad in hex_info.animales.items():
                 if cantidad > 0:
-                    print(f"  - {animal}: {cantidad}")
+                    logger.debug(f"  - {animal}: {cantidad}")
 
             # Probabilidad de encontrar rastros/avistar
             favorables = combinacion(total_casillas-total_animales, vision)
@@ -274,14 +277,14 @@ class Acciones:
             prob_ninguno = favorables / totales
             prob_encontrar = 1 - prob_ninguno
 
-            print(f"Probabilidad de encontrar rastros: {prob_encontrar*100:.1f}%")
+            logger.debug(f"Probabilidad de encontrar rastros: {prob_encontrar*100:.1f}%")
 
             if np.random.random() > prob_encontrar:
-                print("❌ No encontraste rastros de animales hoy")
+                logger.debug("❌ No encontraste rastros de animales hoy")
                 ticks += self.TICKS_BUSQUEDA
                 continue
 
-            print("✅ ¡Encontraste rastros frescos!")
+            logger.debug("✅ ¡Encontraste rastros frescos!")
 
             # 2. DETERMINAR QUÉ ANIMAL ENCONTRÓ
             # Selección aleatoria ponderada por cantidad
@@ -294,7 +297,7 @@ class Acciones:
 
             animal_elegido = np.random.choice(animales_lista, p=np.array(pesos)/sum(pesos))
 
-            print(f"Rastros de: {animal_elegido}")
+            logger.debug(f"Rastros de: {animal_elegido}")
 
             # 3. PROBABILIDAD DE ÉXITO EN LA CACERÍA
             exp_caza = agente.experiencia.get("cazar", 0)
@@ -311,12 +314,12 @@ class Acciones:
             prob_exito = 0.5 - dificultad + (exp_caza / 200) + ((fuerza - 50) / 200) + ((agilidad - 50) / 200)
             prob_exito = max(0.1, min(0.9, prob_exito))
 
-            print(f"Probabilidad de éxito: {prob_exito*100:.1f}%")
-            print(f"  Dificultad del {animal_elegido}: {dificultad*100:.0f}%")
-            print(f"  Bonus por experiencia: +{exp_caza/200*100:.1f}%")
+            logger.debug(f"Probabilidad de éxito: {prob_exito*100:.1f}%")
+            logger.debug(f"  Dificultad del {animal_elegido}: {dificultad*100:.0f}%")
+            logger.debug(f"  Bonus por experiencia: +{exp_caza/200*100:.1f}%")
 
             if np.random.random() > prob_exito:
-                print(f"❌ El {animal_elegido} escapó")
+                logger.debug(f"❌ El {animal_elegido} escapó")
                 agente.experiencia["cazar"] = min(100,
                     agente.experiencia.get("cazar", 0) + 0.01)
                 ticks += self.TICKS_BUSQUEDA
@@ -344,13 +347,13 @@ class Acciones:
             # Añadir al inventario
             agente.inventario["carne"] = agente.inventario.get("carne", 0) + carne_total
 
-            print(f"✅ ¡Caza exitosa!")
-            print(f"   Obtuviste {carne_total} kg de carne de {animal_elegido}")
+            logger.debug(f"✅ ¡Caza exitosa!")
+            logger.debug(f"   Obtuviste {carne_total} kg de carne de {animal_elegido}")
 
             # Posibilidad de obtener piel/cuero (para crafting futuro)
             """if np.random.random() < 0.4:  # 40% de obtener piel
                 agente.inventario["piel"] = agente.inventario.get("piel", 0) + 1
-                print(f"   También obtuviste 1 piel")"""
+                logger.debug(f"   También obtuviste 1 piel")"""
 
             # 5. GANANCIA DE EXPERIENCIA
             agente.experiencia["cazar"] = min(100,
@@ -369,23 +372,23 @@ class Acciones:
         Solo se puede descansar en casillas habitables
         """
 
-        print('está _accion_descansar')
+        logger.debug('está _accion_descansar')
         if agente is None:
             agente = self.simulador.agente_jugador
 
         # Verificar si puede descansar aquí
         if not self._puede_descansar_aqui(agente.ubicacion):
-            print(f"No puedes descansar en {agente.ubicacion}. Busca una vivienda o el centro.")
+            logger.debug(f"No puedes descansar en {agente.ubicacion}. Busca una vivienda o el centro.")
             return self.TICKS_COMPLETO
 
         # Verificar que no esté ya en otra actividad
         if agente.actividad_actual:
-            print(f"{agente.nombre} ya está {agente.actividad_actual}")
+            logger.debug(f"{agente.nombre} ya está {agente.actividad_actual}")
             return self.TICKS_COMPLETO
 
-        print(f"\n=== DESCANSANDO en {agente.ubicacion} ===")
-        print(f"Duración: {self.TICKS_DESCANSAR} ticks ({self.TICKS_DESCANSAR * 30} minutos)")
-        #print(f"Recuperación estimada: {self.REDUCCION_CANSANCIO_POR_TICK * self.TICKS_DESCANSAR}% cansancio")
+        logger.debug(f"\n=== DESCANSANDO en {agente.ubicacion} ===")
+        logger.debug(f"Duración: {self.TICKS_DESCANSAR} ticks ({self.TICKS_DESCANSAR * 30} minutos)")
+        #logger.debug(f"Recuperación estimada: {self.REDUCCION_CANSANCIO_POR_TICK * self.TICKS_DESCANSAR}% cansancio")
 
         # Iniciar actividad
         agente.iniciar_actividad(
@@ -431,10 +434,10 @@ class Acciones:
         # Obtener información de la macro-casilla actual
         hex_info = self.simulador.mapa.hexagonos.get(agente.ubicacion)
         if not hex_info:
-            print("Error: Casilla no encontrada")
+            logger.debug("Error: Casilla no encontrada")
             return
 
-        print(f"\n=== TALANDO en macro-casilla {agente.ubicacion} ===")
+        logger.debug(f"\n=== TALANDO en macro-casilla {agente.ubicacion} ===")
 
         # 1. PROBABILIDAD DE ENCONTRAR algo para talar
         # Basado en recursos TOTALES de la macro-casilla
@@ -442,11 +445,11 @@ class Acciones:
         # Calcular recursos totales disponibles
         total_arboles = hex_info.arboles
         if total_arboles == 0:
-            print("Esta macro-casilla no tiene recursos para recolectar")
+            logger.debug("Esta macro-casilla no tiene recursos para recolectar")
             return
 
-        print(f"Recursos en esta macro-casilla:")
-        print(f"  - Árboles: {total_arboles}")
+        logger.debug(f"Recursos en esta macro-casilla:")
+        logger.debug(f"  - Árboles: {total_arboles}")
 
         # Probabilidad de encontrar algo = densidad de recursos
         ''' A mayor densidad, más probable encontrar'''
@@ -457,15 +460,15 @@ class Acciones:
         prob_ninguno = favorables / totales
         prob_encontrar = 1 - prob_ninguno
 
-        print(f"Probabilidad de encontrar algo: {prob_encontrar*100:.1f}%")
+        logger.debug(f"Probabilidad de encontrar algo: {prob_encontrar*100:.1f}%")
 
         # Tirar dados para ver si encuentra
         for _ in range(config.TIEMPO_TICK):
             if np.random.random() < prob_encontrar:
-                print("✅ ¡Encontraste algo para talar!")
+                logger.debug("✅ ¡Encontraste algo para talar!")
                 break
         else:
-            print("❌ No encontraste nada para talar después de buscar")
+            logger.debug("❌ No encontraste nada para talar después de buscar")
             return
 
         # 2. DETERMINAR QUÉ ENCONTRÓ
@@ -476,7 +479,7 @@ class Acciones:
 
         tipo_encontrado = np.random.choice(opciones)
 
-        print(f"Encontraste: {tipo_encontrado}")
+        logger.debug(f"Encontraste: {tipo_encontrado}")
 
         # 3. CALIDAD DE LA RECOLECCIÓN (éxito)
         # Basado en experiencia del agente
@@ -505,7 +508,7 @@ class Acciones:
         """
         # Verificar que tiene los productos
         if agente.inventario.get(producto, 0) < cantidad:
-            print(f"❌ {agente.nombre} no tiene suficiente {producto}")
+            logger.debug(f"❌ {agente.nombre} no tiene suficiente {producto}")
             return False
 
         # Quitar productos del inventario (pasan al mercado)
@@ -516,7 +519,7 @@ class Acciones:
             agente.id, producto, cantidad, precio_unitario, calidad
         )
 
-        print(f"📢 {agente.nombre} publicó venta: {cantidad} {producto} a {precio_unitario} monedas")
+        logger.debug(f"📢 {agente.nombre} publicó venta: {cantidad} {producto} a {precio_unitario} monedas")
 
         # Registrar acción para experiencia
         agente.experiencia["comerciar"] = agente.experiencia.get("comerciar", 0) + 0.1
@@ -538,7 +541,7 @@ class Acciones:
 
         # Verificar que tiene las monedas
         if agente.inventario.get("monedas", 0) < costo_maximo:
-            print(f"❌ {agente.nombre} no tiene suficientes monedas")
+            logger.debug(f"❌ {agente.nombre} no tiene suficientes monedas")
             return False
 
         # Congelar monedas (se descuentan temporalmente)
@@ -551,7 +554,7 @@ class Acciones:
             agente.id, producto, cantidad, precio_maximo
         )
 
-        print(f"📢 {agente.nombre} publicó compra: busca {cantidad} {producto} (max {precio_maximo})")
+        logger.debug(f"📢 {agente.nombre} publicó compra: busca {cantidad} {producto} (max {precio_maximo})")
 
         agente.experiencia["comerciar"] = agente.experiencia.get("comerciar", 0) + 0.1
         agente.fisiologia.cansancio += 2
@@ -568,17 +571,17 @@ class Acciones:
         # Buscar oferta
         oferta = self.simulador.economia.get_oferta_venta(oferta_venta_id)
         if not oferta or not oferta["activa"]:
-            print(f"❌ Oferta de venta no disponible")
+            logger.debug(f"❌ Oferta de venta no disponible")
             return False
 
         if oferta["cantidad"] < cantidad:
-            print(f"❌ Cantidad insuficiente en oferta")
+            logger.debug(f"❌ Cantidad insuficiente en oferta")
             return False
 
         # Verificar que tiene monedas
         costo_total = oferta["precio_unitario"] * cantidad
         if comprador.inventario.get("monedas", 0) < costo_total:
-            print(f"❌ {comprador.nombre} no tiene suficientes monedas")
+            logger.debug(f"❌ {comprador.nombre} no tiene suficientes monedas")
             return False
 
         # Buscar o crear oferta de compra automática
@@ -598,7 +601,7 @@ class Acciones:
             # El vendedor ya no tiene los productos (se quitaron al publicar)
             # Las monedas se manejan en la transacción
 
-            print(f"✅ {comprador.nombre} compró {cantidad} {oferta['producto']} por {costo_total} monedas")
+            logger.debug(f"✅ {comprador.nombre} compró {cantidad} {oferta['producto']} por {costo_total} monedas")
 
             # Registrar afinidad con el vendedor
             vendedor = self._get_agente_by_id(oferta["agente_id"])
@@ -618,16 +621,16 @@ class Acciones:
         # Buscar oferta de compra
         oferta = self.simulador.economia.get_oferta_compra(oferta_compra_id)
         if not oferta or not oferta["activa"]:
-            print(f"❌ Oferta de compra no disponible")
+            logger.debug(f"❌ Oferta de compra no disponible")
             return False
 
         if oferta["cantidad"] < cantidad:
-            print(f"❌ Cantidad solicitada insuficiente")
+            logger.debug(f"❌ Cantidad solicitada insuficiente")
             return False
 
         # Verificar que tiene los productos
         if vendedor.inventario.get(oferta["producto"], 0) < cantidad:
-            print(f"❌ {vendedor.nombre} no tiene suficiente {oferta['producto']}")
+            logger.debug(f"❌ {vendedor.nombre} no tiene suficiente {oferta['producto']}")
             return False
 
         # Crear oferta de venta automática
@@ -646,7 +649,7 @@ class Acciones:
 
             # Las monedas ya están en la transacción
 
-            print(f"✅ {vendedor.nombre} vendió {cantidad} {oferta['producto']} por {transaccion['total']} monedas")
+            logger.debug(f"✅ {vendedor.nombre} vendió {cantidad} {oferta['producto']} por {transaccion['total']} monedas")
 
             return transaccion
 
@@ -663,7 +666,7 @@ class Acciones:
                 # Devolver productos
                 agente.inventario[oferta["producto"]] += oferta["cantidad"]
                 oferta["activa"] = False
-                print(f"✅ Oferta de venta cancelada, {oferta['cantidad']} {oferta['producto']} devueltos")
+                logger.debug(f"✅ Oferta de venta cancelada, {oferta['cantidad']} {oferta['producto']} devueltos")
                 return True
 
         elif tipo_oferta == "compra":
@@ -675,7 +678,7 @@ class Acciones:
                 if hasattr(agente, 'monedas_reservadas'):
                     agente.monedas_reservadas -= costo
                 oferta["activa"] = False
-                print(f"✅ Oferta de compra cancelada, {costo} monedas devueltas")
+                logger.debug(f"✅ Oferta de compra cancelada, {costo} monedas devueltas")
                 return True
 
         return False

@@ -1,7 +1,10 @@
+import logging
 import pygame
 import math
 import numpy as np
 import config
+
+logger = logging.getLogger(__name__)
 
 def combinacion(n, r):
     return math.comb(n, r)
@@ -160,7 +163,7 @@ class MenuContextual:
 
             if 0 <= indice < len(self.opciones):
                 texto, accion = self.opciones[indice]
-                print(f"Menú: {texto}")
+                logger.debug(f"Menú: {texto}")
                 accion()
                 self.ocultar()
                 return True
@@ -184,19 +187,19 @@ class MenuContextual:
         return config.TIEMPO_TICK
 
     def _accion_beber(self):
-        print("Acción: Beber agua")
+        logger.debug("Acción: Beber agua")
         return config.TIEMPO_TICK
         # Implementar después
 
     def _accion_inventario(self):
-        print("Acción: Ver inventario")
+        logger.debug("Acción: Ver inventario")
         self.simulador.menu_inventario.mostrar()
         self.visible = False
         return 0
         # Mostrar inventario después
 
     def _accion_cancelar(self):
-        print("Menú cancelado")
+        logger.debug("Menú cancelado")
         return config.TIEMPO_TICK
 
     def _accion_abrir_mercado(self):
