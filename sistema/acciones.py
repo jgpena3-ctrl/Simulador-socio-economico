@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -7,14 +9,15 @@ import math
 import numpy as np
 import inspect
 from functools import wraps
+from typing import Any, Callable
 
-def combinacion(n, r):
+def combinacion(n: int, r: int) -> int:
     return math.comb(n, r)
 
 
-def rastrear_llamadas(func):
+def rastrear_llamadas(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         # Obtener información del llamante
         frame = inspect.currentframe()
         frame_llamada = inspect.getouterframes(frame, 2)[1]
@@ -39,14 +42,14 @@ class Acciones:
     TICKS_COMER = 1
     TICKS_BEBER = 1
 
-    def __init__(self, simulador):
+    def __init__(self, simulador: Any) -> None:
         self.simulador = simulador  # Referencia al simulador
         self.TICKS_BUSQUEDA = 1
         self.TICKS_ACCION = 5
         self.TICKS_COMPLETO = 30
 
 
-    def _accion_dormir(self, agente=None):
+    def _accion_dormir(self, agente: Any = None) -> bool:
         """Inicia actividad de dormir."""
         if agente is None:
             agente = self.simulador.agente_jugador
@@ -58,7 +61,7 @@ class Acciones:
             return True
         return False
 
-    def _accion_comer(self, agente=None):
+    def _accion_comer(self, agente: Any = None) -> bool:
         """Consume comida e inicia actividad de comer."""
         if agente is None:
             agente = self.simulador.agente_jugador
@@ -74,7 +77,7 @@ class Acciones:
             return True
         return False
 
-    def _accion_trabajar(self, agente=None):
+    def _accion_trabajar(self, agente: Any = None) -> bool:
         """Acción de trabajo simple basada en experiencia."""
         if agente is None:
             agente = self.simulador.agente_jugador
@@ -95,7 +98,7 @@ class Acciones:
             return True
         return False
 
-    def _accion_socializar(self, agente=None):
+    def _accion_socializar(self, agente: Any = None) -> bool:
         """Interacción social básica con agentes cercanos."""
         if agente is None:
             agente = self.simulador.agente_jugador
@@ -120,7 +123,7 @@ class Acciones:
         logger.debug(f"{agente.nombre} socializa con {otro_agente.nombre}")
         return True
 
-    def _accion_recolectar(self, agente=None):
+    def _accion_recolectar(self, agente: Any = None) -> None:
         """
         Acción de recolectar - COMPLETAMENTE PROBABILÍSTICA
         """
@@ -231,7 +234,7 @@ class Acciones:
             duracion_ticks = self.TICKS_RECOLECTAR
         )
 
-    def _accion_cazar(self, agente=None):
+    def _accion_cazar(self, agente: Any = None) -> int | None:
         logger.debug("Acción: Cazar animal")
         """
         Acción de cazar - COMPLETAMENTE PROBABILÍSTICA
@@ -366,7 +369,7 @@ class Acciones:
             duracion_ticks = self.TICKS_CAZAR
         )
 
-    def _accion_descansar(self, agente=None):
+    def _accion_descansar(self, agente: Any = None) -> int:
         """
         Inicia la acción de descansar
         Solo se puede descansar en casillas habitables
@@ -398,7 +401,7 @@ class Acciones:
 
         return self.TICKS_COMPLETO  # Consume 1 tick para iniciar
 
-    def _puede_descansar_aqui(self, ubicacion):
+    def _puede_descansar_aqui(self, ubicacion: tuple[int, int]) -> bool:
         """Determina si una casilla es habitable"""
         hex_info = self.simulador.mapa.hexagonos.get(ubicacion)
         if not hex_info:
@@ -418,7 +421,7 @@ class Acciones:
 
         return False
 
-    def _accion_talar(self, agente=None):
+    def _accion_talar(self, agente: Any = None) -> None:
         """
         Acción de talar
         """
@@ -500,7 +503,7 @@ class Acciones:
 
     # ===== ACCIONES DE MERCADO =====
 
-    def accion_publicar_oferta_venta(self, agente, producto, cantidad, precio_unitario, calidad=1.0):
+    def accion_publicar_oferta_venta(self, agente: Any, producto: str, cantidad: int, precio_unitario: float, calidad: float = 1.0) -> int | bool:
         """
         Acción: Publicar una oferta de venta en el mercado
         - Consume tiempo (1 tick)
@@ -530,7 +533,7 @@ class Acciones:
 
         return oferta_id
 
-    def accion_publicar_oferta_compra(self, agente, producto, cantidad, precio_maximo):
+    def accion_publicar_oferta_compra(self, agente: Any, producto: str, cantidad: int, precio_maximo: float) -> int | bool:
         """
         Acción: Publicar una oferta de compra en el mercado
         - Consume tiempo (1 tick)
@@ -562,7 +565,7 @@ class Acciones:
 
         return oferta_id
 
-    def accion_comprar(self, comprador, oferta_venta_id, cantidad):
+    def accion_comprar(self, comprador: Any, oferta_venta_id: int, cantidad: int) -> dict[str, Any] | bool:
         """
         Acción: Comprar de una oferta de venta existente
         - Consume tiempo (1 tick)
@@ -612,7 +615,7 @@ class Acciones:
 
         return False
 
-    def accion_vender(self, vendedor, oferta_compra_id, cantidad):
+    def accion_vender(self, vendedor: Any, oferta_compra_id: int, cantidad: int) -> dict[str, Any] | bool:
         """
         Acción: Vender a una oferta de compra existente
         - Consume tiempo (1 tick)
@@ -655,7 +658,7 @@ class Acciones:
 
         return False
 
-    def accion_cancelar_oferta(self, agente, oferta_id, tipo_oferta):
+    def accion_cancelar_oferta(self, agente: Any, oferta_id: int, tipo_oferta: str) -> bool:
         """
         Acción: Cancelar una oferta propia
         - Devuelve los productos/monedas al agente
