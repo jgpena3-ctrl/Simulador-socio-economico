@@ -1,4 +1,7 @@
+import logging
 import config
+
+logger = logging.getLogger(__name__)
 
 
 class TickSystem:
@@ -16,14 +19,14 @@ class TickSystem:
         sim.tiempo_transcurrido += 30
         nuevo_dia = self.tiempo(config.TIEMPO_TICK)
 
-        print(f"\n=== TICK {sim.tick} ({sim.hora:02d}:{sim.minutos:02d}) ===")
+        logger.debug(f"\n=== TICK {sim.tick} ({sim.hora:02d}:{sim.minutos:02d}) ===")
 
         if sim.moviendo_agente:
             sim.movement.avanzar_paso_movimiento()
 
         if sim.tick % 48 == 0:
             sim.mapa.actualizar_ecosistema()
-            print("  Ecosistema actualizado")
+            logger.debug("  Ecosistema actualizado")
 
         for agente in sim.agentes[:]:
             if not agente.vivo:
@@ -42,7 +45,7 @@ class TickSystem:
             if not agente.controlado_por_jugador:
                 sim._decision_ia(agente)
 
-        print("  Tick completado")
+        logger.debug("  Tick completado")
 
     def tiempo(self, tick):
         sim = self.simulador

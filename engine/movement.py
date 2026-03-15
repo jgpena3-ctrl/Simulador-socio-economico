@@ -1,5 +1,8 @@
+import logging
 import pygame
 from utils.hex_math import axial_to_pixel, hex_distance
+
+logger = logging.getLogger(__name__)
 
 
 class MovementSystem:
@@ -34,23 +37,23 @@ class MovementSystem:
         inicio = agente.ubicacion
 
         if inicio == destino:
-            print(f"{agente.nombre} ya está en {destino}")
+            logger.debug(f"{agente.nombre} ya está en {destino}")
             return False
 
         if destino not in sim.mapa.hexagonos:
-            print(f"Destino {destino} no está en el mapa")
+            logger.debug(f"Destino {destino} no está en el mapa")
             return False
 
         sim.ruta_actual = self.calcular_ruta(inicio, destino)
 
         if not sim.ruta_actual:
-            print(f"No se pudo calcular ruta de {inicio} a {destino}")
+            logger.debug(f"No se pudo calcular ruta de {inicio} a {destino}")
             return False
 
-        print(f"{agente.nombre} se mueve a {destino} ({len(sim.ruta_actual)} pasos)")
+        logger.debug(f"{agente.nombre} se mueve a {destino} ({len(sim.ruta_actual)} pasos)")
         sim.moviendo_agente = True
         agente.actividad_actual = "moviendose"
-        print("Movimiento iniciado. Primer paso en el próximo tick.")
+        logger.debug("Movimiento iniciado. Primer paso en el próximo tick.")
         return True
 
     def avanzar_paso_movimiento(self):
@@ -66,7 +69,7 @@ class MovementSystem:
         siguiente = sim.ruta_actual.pop(0)
 
         if siguiente not in sim.mapa.hexagonos:
-            print(f"Error: Paso inválido {siguiente}")
+            logger.debug(f"Error: Paso inválido {siguiente}")
             self.finalizar_movimiento()
             return False
 
@@ -75,7 +78,7 @@ class MovementSystem:
         agente.fisiologia.cansancio += 2
         agente.fisiologia.energia = max(0, agente.fisiologia.energia - 1)
 
-        print(f"  {agente.nombre}: {ubicacion_anterior} → {siguiente}")
+        logger.debug(f"  {agente.nombre}: {ubicacion_anterior} → {siguiente}")
 
         if not sim.ruta_actual:
             self.finalizar_movimiento()
@@ -89,16 +92,16 @@ class MovementSystem:
         agente = sim.agente_jugador
         if agente:
             destino = agente.ubicacion
-            print(f"{agente.nombre} llegó a {destino}")
+            logger.debug(f"{agente.nombre} llegó a {destino}")
 
             hex_destino = sim.mapa.hexagonos.get(destino)
             if hex_destino:
                 if destino == (0, 0):
-                    print("  (Estás en el área central)")
+                    logger.debug("  (Estás en el área central)")
                 elif hex_destino.arboles > 0:
-                    print("  (Hay árboles aquí para talar)")
+                    logger.debug("  (Hay árboles aquí para talar)")
                 elif any(count > 0 for count in hex_destino.animales.values()):
-                    print("  (Hay animales aquí para cazar)")
+                    logger.debug("  (Hay animales aquí para cazar)")
 
         sim.moviendo_agente = False
         sim.ruta_actual = []

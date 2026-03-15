@@ -1,7 +1,10 @@
+import logging
 import numpy as np
 from enum import Enum
 from .fisiologia import Fisiologia
 import config
+
+logger = logging.getLogger(__name__)
 
 class Personalidad(Enum):
     INTJ = "Arquitecto"
@@ -221,7 +224,7 @@ class Agente:
 
     def _cumpleannos(self):
         """Acciones en cumpleaños"""
-        print(f"{self.nombre} cumple {self.edad} años!")
+        logger.debug(f"{self.nombre} cumple {self.edad} años!")
 
     def consumir(self):
         """Consumir alimento"""
@@ -266,13 +269,13 @@ class Agente:
     def iniciar_actividad(self, actividad, duracion_ticks, **datos):
         """Inicia una actividad que durará múltiples ticks"""
         if self.actividad_actual:
-            print(f"{self.nombre} ya está {self.actividad_actual}")
+            logger.debug(f"{self.nombre} ya está {self.actividad_actual}")
             return False
 
         self.actividad_actual = actividad
         self.actividad_restante = duracion_ticks
         self.actividad_datos = datos
-        print(f"{self.nombre} comienza {actividad} ({duracion_ticks} ticks)")
+        logger.debug(f"{self.nombre} comienza {actividad} ({duracion_ticks} ticks)")
         return True
 
     def tick_actividad(self):
@@ -281,7 +284,7 @@ class Agente:
             return False
 
         self.actividad_restante -= 1
-        print(f"  {self.nombre}: {self.actividad_actual} - {self.actividad_restante} ticks restantes")
+        logger.debug(f"  {self.nombre}: {self.actividad_actual} - {self.actividad_restante} ticks restantes")
 
         if self.actividad_restante <= 0:
             self._finalizar_actividad()
@@ -291,7 +294,7 @@ class Agente:
 
     def _finalizar_actividad(self):
         """Limpia la actividad actual"""
-        print(f"{self.nombre} terminó {self.actividad_actual}")
+        logger.debug(f"{self.nombre} terminó {self.actividad_actual}")
         self.actividad_actual = None
         self.actividad_restante = 0
         self.actividad_datos = {}
