@@ -512,7 +512,7 @@ class Acciones:
         agente.inventario[producto] -= cantidad
 
         # Publicar oferta
-        oferta_id = self.sim.economia.publicar_oferta_venta(
+        oferta_id = self.simulador.economia.publicar_oferta_venta(
             agente.id, producto, cantidad, precio_unitario, calidad
         )
 
@@ -547,7 +547,7 @@ class Acciones:
         agente.monedas_reservadas = agente.monedas_reservadas + costo_maximo if hasattr(agente, 'monedas_reservadas') else costo_maximo
 
         # Publicar oferta
-        oferta_id = self.sim.economia.publicar_oferta_compra(
+        oferta_id = self.simulador.economia.publicar_oferta_compra(
             agente.id, producto, cantidad, precio_maximo
         )
 
@@ -566,7 +566,7 @@ class Acciones:
         - Transfiere productos y monedas
         """
         # Buscar oferta
-        oferta = self.sim.economia.get_oferta_venta(oferta_venta_id)
+        oferta = self.simulador.economia.get_oferta_venta(oferta_venta_id)
         if not oferta or not oferta["activa"]:
             print(f"❌ Oferta de venta no disponible")
             return False
@@ -582,12 +582,12 @@ class Acciones:
             return False
 
         # Buscar o crear oferta de compra automática
-        oferta_compra_id = self.sim.economia.publicar_oferta_compra(
+        oferta_compra_id = self.simulador.economia.publicar_oferta_compra(
             comprador.id, oferta["producto"], cantidad, oferta["precio_unitario"] + 1
         )
 
         # Realizar transacción
-        transaccion = self.sim.economia.realizar_transaccion(
+        transaccion = self.simulador.economia.realizar_transaccion(
             oferta_venta_id, oferta_compra_id, cantidad
         )
 
@@ -616,7 +616,7 @@ class Acciones:
         - Transfiere productos y monedas
         """
         # Buscar oferta de compra
-        oferta = self.sim.economia.get_oferta_compra(oferta_compra_id)
+        oferta = self.simulador.economia.get_oferta_compra(oferta_compra_id)
         if not oferta or not oferta["activa"]:
             print(f"❌ Oferta de compra no disponible")
             return False
@@ -631,12 +631,12 @@ class Acciones:
             return False
 
         # Crear oferta de venta automática
-        oferta_venta_id = self.sim.economia.publicar_oferta_venta(
+        oferta_venta_id = self.simulador.economia.publicar_oferta_venta(
             vendedor.id, oferta["producto"], cantidad, oferta["precio_maximo"], 1.0
         )
 
         # Realizar transacción
-        transaccion = self.sim.economia.realizar_transaccion(
+        transaccion = self.simulador.economia.realizar_transaccion(
             oferta_venta_id, oferta_compra_id, cantidad
         )
 
@@ -658,7 +658,7 @@ class Acciones:
         - Devuelve los productos/monedas al agente
         """
         if tipo_oferta == "venta":
-            oferta = self.sim.economia.get_oferta_venta(oferta_id)
+            oferta = self.simulador.economia.get_oferta_venta(oferta_id)
             if oferta and oferta["agente_id"] == agente.id and oferta["activa"]:
                 # Devolver productos
                 agente.inventario[oferta["producto"]] += oferta["cantidad"]
@@ -667,7 +667,7 @@ class Acciones:
                 return True
 
         elif tipo_oferta == "compra":
-            oferta = self.sim.economia.get_oferta_compra(oferta_id)
+            oferta = self.simulador.economia.get_oferta_compra(oferta_id)
             if oferta and oferta["agente_id"] == agente.id and oferta["activa"]:
                 # Devolver monedas congeladas
                 costo = oferta["precio_maximo"] * oferta["cantidad"]
