@@ -7,7 +7,7 @@ from mundo.camara import Camara
 from mundo.mapa_hexagonal import MapaHexagonal
 from ui.menu_mercado import MenuMercado
 from ui.interfaz import InterfazSimulador
-from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners
+from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners, hex_distance
 from sistema.economia import SistemaEconomico
 from sistema.acciones import Acciones
 import config
@@ -221,7 +221,7 @@ class Simulador:
 
     def _distancia(self, pos1, pos2):
         """Distancia entre dos posiciones hexagonales"""
-        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+        return hex_distance(pos1, pos2)
 
     def dibujar(self):
         """Dibujar todo usando la cámara"""
@@ -704,9 +704,7 @@ class Simulador:
 
     def _distancia_hex(self, hex1, hex2):
         """Distancia hexagonal entre dos casillas"""
-        q1, r1 = hex1
-        q2, r2 = hex2
-        return (abs(q1 - q2) + abs(q1 + r1 - q2 - r2) + abs(r1 - r2)) // 2
+        return hex_distance(hex1, hex2)
 
     def _actualizar_movimiento_camara(self):
         """Actualizar movimiento de cámara basado en teclas presionadas"""
