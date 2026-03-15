@@ -66,6 +66,10 @@ class SistemaEconomico:
         # Ordenar por precio (menor primero)
         return sorted(resultados, key=lambda x: x["precio_unitario"])
 
+    def get_oferta_venta(self, oferta_id):
+        """Obtiene una oferta de venta por ID."""
+        return next((oferta for oferta in self.ofertas_venta if oferta["id"] == oferta_id), None)
+
     def buscar_ofertas_compra(self, producto=None, precio_min=None):
         """Busca ofertas de compra activas"""
         resultados = []
@@ -83,6 +87,10 @@ class SistemaEconomico:
 
         # Ordenar por precio (mayor primero)
         return sorted(resultados, key=lambda x: x["precio_maximo"], reverse=True)
+
+    def get_oferta_compra(self, oferta_id):
+        """Obtiene una oferta de compra por ID."""
+        return next((oferta for oferta in self.ofertas_compra if oferta["id"] == oferta_id), None)
 
     def realizar_transaccion(self, oferta_venta_id, oferta_compra_id, cantidad):
         """Realiza una transacción entre dos agentes"""
