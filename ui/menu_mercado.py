@@ -163,6 +163,92 @@ class MenuMercado:
                 pantalla.blit(superficie, (x, y_actual))
                 y_actual += 20
 
+    def _dibujar_vender(self, pantalla):
+        """Interfaz para vender (ver ofertas de compra)."""
+        if not self.producto_seleccionado:
+            self.modo = "principal"
+            return
+
+        x, y = 220, 120
+        font_titulo = pygame.font.SysFont(None, 36)
+        font_texto = pygame.font.SysFont(None, 24)
+
+        producto = self.producto_seleccionado
+        ofertas = self.sim.economia.buscar_ofertas_compra(producto=producto)
+
+        titulo = font_titulo.render(f"Vender {producto.capitalize()}", True, (255, 255, 200))
+        pantalla.blit(titulo, (x, y))
+
+        y_actual = y + 50
+        if not ofertas:
+            texto = font_texto.render("No hay ofertas de compra disponibles", True, (200, 200, 200))
+            pantalla.blit(texto, (x, y_actual))
+            return
+
+        for i, oferta in enumerate(ofertas[:10]):
+            comprador = self._get_agente_by_id(oferta["agente_id"])
+            nombre = comprador.nombre if comprador else "Desconocido"
+
+            texto = (
+                f"{i+1}. {nombre}: {oferta['cantidad']} x "
+                f"{oferta['precio_maximo']} (máx.)"
+            )
+            superficie = font_texto.render(texto, True, (220, 220, 220))
+            pantalla.blit(superficie, (x, y_actual))
+            y_actual += 20
+
+    def _dibujar_ofertar_venta(self, pantalla):
+        """Pantalla informativa para publicar oferta de venta."""
+        if not self.producto_seleccionado:
+            self.modo = "principal"
+            return
+
+        x, y = 220, 120
+        font_titulo = pygame.font.SysFont(None, 36)
+        font_texto = pygame.font.SysFont(None, 24)
+
+        producto = self.producto_seleccionado
+        titulo = font_titulo.render(f"Ofertar venta de {producto.capitalize()}", True, (255, 255, 200))
+        pantalla.blit(titulo, (x, y))
+
+        mensajes = [
+            "Este modo aún no tiene captura de datos interactiva.",
+            "Integrar aquí cantidad/precio para publicar oferta de venta.",
+            "ESC para volver al menú principal.",
+        ]
+
+        y_actual = y + 50
+        for mensaje in mensajes:
+            superficie = font_texto.render(mensaje, True, (220, 220, 220))
+            pantalla.blit(superficie, (x, y_actual))
+            y_actual += 25
+
+    def _dibujar_ofertar_compra(self, pantalla):
+        """Pantalla informativa para publicar oferta de compra."""
+        if not self.producto_seleccionado:
+            self.modo = "principal"
+            return
+
+        x, y = 220, 120
+        font_titulo = pygame.font.SysFont(None, 36)
+        font_texto = pygame.font.SysFont(None, 24)
+
+        producto = self.producto_seleccionado
+        titulo = font_titulo.render(f"Ofertar compra de {producto.capitalize()}", True, (255, 255, 200))
+        pantalla.blit(titulo, (x, y))
+
+        mensajes = [
+            "Este modo aún no tiene captura de datos interactiva.",
+            "Integrar aquí cantidad/precio máximo para publicar oferta.",
+            "ESC para volver al menú principal.",
+        ]
+
+        y_actual = y + 50
+        for mensaje in mensajes:
+            superficie = font_texto.render(mensaje, True, (220, 220, 220))
+            pantalla.blit(superficie, (x, y_actual))
+            y_actual += 25
+
     def _get_agente_by_id(self, agente_id):
         """Busca un agente por ID"""
         for agente in self.sim.agentes:
