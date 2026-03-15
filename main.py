@@ -7,6 +7,10 @@ from mundo.camara import Camara
 from mundo.mapa_hexagonal import MapaHexagonal
 from ui.menu_mercado import MenuMercado
 from ui.interfaz import InterfazSimulador
+from controllers.input_controller import InputController
+from engine.movement import MovementSystem
+from engine.tick_system import TickSystem
+from render.world_renderer import WorldRenderer
 from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners, hex_distance
 from sistema.economia import SistemaEconomico
 from sistema.acciones import Acciones
@@ -37,6 +41,12 @@ class Simulador:
         self.menu_mercado = MenuMercado(self)
         self.ai_agentes = AIAgentes(self)
         self.interfaz = InterfazSimulador(self)
+
+        # Capas por responsabilidad
+        self.tick_system = TickSystem(self)
+        self.movement = MovementSystem(self)
+        self.renderer = WorldRenderer(self)
+        self.input_controller = InputController(self)
 
         # Agentes
         self.agentes = []
@@ -139,50 +149,8 @@ class Simulador:
         print("=== MERCADO INICIALIZADO ===\n")
 
     def ejecutar_tick(self):
-        """Ejecutar un tick de 30 minutos cuando hay actividad - LIMPIO"""
-        if self.pausado:
-            return
-
-        self.tick += 1
-        self.tiempo_transcurrido += 30
-        nuevo_dia = self.tiempo(config.TIEMPO_TICK)
-
-        print(f"\n=== TICK {self.tick} ({self.hora:02d}:{self.minutos:02d}) ===")
-
-        # 1. Procesar movimiento del jugador (si hay)
-        if self.moviendo_agente:
-            self._avanzar_paso_movimiento()
-
-        # 2. Actualizar mundo (solo cada día completo)
-        if self.tick % 48 == 0:
-            self.mapa.actualizar_ecosistema()
-            print("  Ecosistema actualizado")
-
-        # 3. Actualizar cada agente
-        for agente in self.agentes[:]:
-            if not agente.vivo:
-                self.agentes.remove(agente)
-                if agente in self.agentes_controlables:
-                    self.agentes_controlables.remove(agente)
-                continue
-
-            # Actualizar fisiología
-            if nuevo_dia:
-                nuevo_anno = agente.dia_nacimiento == self.dia
-            else:
-                nuevo_anno = False
-
-            agente.fisiologia.hora = self.hora
-            agente.fisiologia.actualizar_tick_30min(nuevo_dia, nuevo_anno)
-
-            # Procesar actividades del agente
-            self._procesar_actividad_agente(agente)
-
-            # Tomar decisiones de IA (solo para NPCs)
-            if not agente.controlado_por_jugador:
-                self._decision_ia(agente)
-
-        print(f"  Tick completado")
+        """Ejecutar tick delegando al sistema de tiempo/simulación."""
+        return self.tick_system.ejecutar_tick()
 
     def _decision_ia(self, agente):
         """Delega la IA de NPCs al módulo de IA de agentes."""
@@ -224,59 +192,8 @@ class Simulador:
         return hex_distance(pos1, pos2)
 
     def dibujar(self):
-        """Dibujar todo usando la cámara"""
-        self.pantalla.fill((25, 25, 35))
-
-        # Dibujar hexágonos visibles
-        for (q, r), hexagono in self.mapa.hexagonos.items():
-            # Convertir coordenadas hexagonales a pixel del mundo
-            x_mundo, y_mundo = axial_to_pixel(q, r, self.hex_size, self.hex_flat)
-
-            # Convertir a pantalla usando la cámara
-            x_pant, y_pant = self.camara.mundo_a_pantalla(x_mundo, y_mundo)
-
-            # Solo dibujar si está visible (optimización)
-            if self._esta_en_pantalla(x_pant, y_pant):
-                vertices = get_hex_corners(x_pant, y_pant,
-                                         self.hex_size * self.camara.escala,
-                                         self.hex_flat)
-                color = self._color_para_hex(hexagono)
-                pygame.draw.polygon(self.pantalla, color, vertices, 0)
-                pygame.draw.polygon(self.pantalla, (0,0,0), vertices, 1)
-
-        # Dibujar ruta
-        if self.moviendo_agente and self.ruta_actual:
-            self._dibujar_ruta()
-
-        # Dibujar agentes
-        for agente in self.agentes:
-            if agente.ubicacion in self.mapa.hexagonos:
-                q, r = agente.ubicacion
-                x_mundo, y_mundo = axial_to_pixel(q, r, self.hex_size, self.hex_flat)
-                x_pant, y_pant = self.camara.mundo_a_pantalla(x_mundo, y_mundo)
-
-                color = (0, 200, 255) if agente.controlado_por_jugador else (255, 100, 100)
-                radio = max(3, (self.hex_size * self.camara.escala) // 3)
-                pygame.draw.circle(self.pantalla, color, (int(x_pant), int(y_pant)), radio)
-
-                # Nombre en zoom cercano
-                if self.camara.escala > 0.8 and agente.controlado_por_jugador:
-                    font = pygame.font.SysFont(None, int(20 * self.camara.escala))
-                    nombre_surf = font.render(agente.nombre, True, (255, 255, 255))
-                    self.pantalla.blit(nombre_surf, (x_pant - 40, y_pant - radio - 20))
-
-        # Dibujar UI
-        self._dibujar_ui()
-
-        # Dibujar menú (siempre encima)
-        self.menu.dibujar(self.pantalla)
-        if self.menu_inventario.visible:
-            self.menu_inventario.dibujar(self.pantalla)
-
-        if self.menu_mercado.visible:
-            self.menu_mercado.dibujar(self.pantalla)
-
-        pygame.display.flip()
+        """Dibujar todo delegando en el renderizador del mundo."""
+        return self.renderer.dibujar()
 
     def _color_para_hex(self, hexagono):
         """Delega colores de render al módulo de interfaz."""
@@ -397,50 +314,11 @@ class Simulador:
         return self.interfaz.dibujar_ui()
 
     def _dibujar_ruta(self):
-        """Dibujar ruta usando la cámara"""
-        if not self.ruta_actual or not self.agente_jugador:
-            return
-
-        puntos = []
-
-        # Empezar desde la posición actual
-        q_actual, r_actual = self.agente_jugador.ubicacion
-        x_mundo, y_mundo = axial_to_pixel(q_actual, r_actual, self.hex_size, self.hex_flat)
-        x_pant, y_pant = self.camara.mundo_a_pantalla(x_mundo, y_mundo)
-        puntos.append((x_pant, y_pant))
-
-        # Añadir todos los puntos de la ruta
-        for paso in self.ruta_actual:
-            q, r = paso
-            x_mundo, y_mundo = axial_to_pixel(q, r, self.hex_size, self.hex_flat)
-            x_pant, y_pant = self.camara.mundo_a_pantalla(x_mundo, y_mundo)
-            puntos.append((x_pant, y_pant))
-
-        # Dibujar línea
-        if len(puntos) >= 2:
-            pygame.draw.lines(self.pantalla, (255, 255, 0), False, puntos,
-                             max(2, int(3 * self.camara.escala)))
-
-        # Dibujar puntos en cada paso (excepto el primero)
-        for punto in puntos[1:]:
-            radio = max(3, int(6 * self.camara.escala))
-            pygame.draw.circle(self.pantalla, (255, 200, 0),
-                             (int(punto[0]), int(punto[1])), radio)
+        """Compatibilidad: delega al sistema de movimiento."""
+        return self.movement.dibujar_ruta()
 
     def tiempo(self, tick):
-        nuevo_dia = False
-        self.minutos += tick
-        if self.minutos >= 60:
-            self.hora += 1
-            self.minutos -= 60
-            if self.hora == 24:
-                self.dia += 1
-                self.hora = 0
-                nuevo_dia = True
-                if self.dia > config.DIAS_POR_AÑO:
-                    self.anno += 1
-                    self.dia = 1
-        return nuevo_dia
+        return self.tick_system.tiempo(tick)
 
     def ejecutar(self):
         """Bucle principal con movimiento de cámara"""
@@ -449,22 +327,10 @@ class Simulador:
         while self.ejecutando:
             # Manejar eventos
             for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    self.ejecutando = False
-                elif evento.type == pygame.KEYDOWN:
-                    self._manejar_teclas(evento.key, True)
-                elif evento.type == pygame.KEYUP:
-                    self._manejar_teclas(evento.key, False)
-                elif evento.type == pygame.MOUSEBUTTONDOWN:
-                    self._manejar_clic_mouse(evento)
-                elif evento.type == pygame.MOUSEWHEEL:  # Rueda del mouse
-                    if evento.y > 0:
-                        self.camara.zoom_in()
-                    elif evento.y < 0:
-                        self.camara.zoom_out()
+                self.input_controller.procesar_evento(evento)
 
             # Actualizar movimiento de cámara
-            self._actualizar_movimiento_camara()
+            self.movement.actualizar_movimiento_camara()
 
             # Seguir al jugador si está activado
             if self.seguir_jugador and self.agente_jugador:
@@ -479,99 +345,16 @@ class Simulador:
             reloj.tick(60)  # 60 FPS para movimiento suave
 
     def _hay_accion_en_progreso(self):
-        """Verificar si hay alguna acción que consuma tiempo"""
-        return (self.moviendo_agente or
-                self.agente_jugador.actividad_actual not in [None, "descansando"])
+        """Verificar si hay alguna acción que consuma tiempo."""
+        return self.tick_system.hay_accion_en_progreso()
 
     def _manejar_teclas(self, tecla, presionada=True):
-            """Manejar teclas presionadas o liberadas"""
-            if tecla in self.teclas_presionadas:
-                self.teclas_presionadas[tecla] = presionada
-
-            # Si el menú de inventario está abierto, solo él recibe teclas
-            if self.menu_inventario.visible:
-                self.menu_inventario.procesar_tecla(tecla)
-                return
-
-            # Teclas de acción (solo cuando se presionan)
-            if presionada:
-                if tecla == pygame.K_p:
-                    self.pausado = not self.pausado
-                    print(f"Juego {'pausado' if self.pausado else 'reanudado'}")
-
-                elif tecla == pygame.K_SPACE and self.pausado:
-                    self.ejecutar_tick()
-                    print("Tick manual ejecutado")
-
-                elif tecla == pygame.K_c and self.agente_jugador:
-                    self.agente_jugador.consumir()
-                    print(f"{self.agente_jugador.nombre} comió")
-
-                elif tecla == pygame.K_f:  # Alternar seguir jugador
-                    self.seguir_jugador = not self.seguir_jugador
-                    print(f"Seguir jugador: {'ON' if self.seguir_jugador else 'OFF'}")
-
-                elif tecla == pygame.K_z:  # Zoom in
-                    self.camara.zoom_in()
-                    print(f"Zoom: {self.camara.escala:.1f}x")
-
-                elif tecla == pygame.K_x:  # Zoom out
-                    self.camara.zoom_out()
-                    print(f"Zoom: {self.camara.escala:.1f}x")
-
-                elif tecla == pygame.K_r:  # Reset zoom
-                    self.camara.escala = 1.0
-                    print("Zoom reseteado")
-
-                elif tecla == pygame.K_HOME:  # Centrar en jugador
-                    if self.agente_jugador:
-                        q, r = self.agente_jugador.ubicacion
-                        self.camara.centrar_en(q * 1.5, r * math.sqrt(3))
-                        print("Centrado en jugador")
-
-                elif tecla == pygame.K_ESCAPE:
-                    self.ejecutando = False
+        """Compatibilidad: delega al controlador de entrada."""
+        return self.input_controller.manejar_teclas(tecla, presionada)
 
     def _manejar_clic_mouse(self, evento):
-        """Manejo de clics con cámara"""
-        if evento.button == 1:  # Cli5c izquierdo
-            # Primero verificar si se hizo clic en el menú
-            if self.menu.procesar_clic(evento.pos):
-                return
-
-            # Convertir coordenadas de pantalla a mundo
-            x_mundo, y_mundo = self.camara.pantalla_a_mundo(*evento.pos)
-
-            # Obtener hexágono clicado
-            q_float, r_float = pixel_to_axial(x_mundo, y_mundo,
-                                            self.hex_size, self.hex_flat)
-            q_round, r_round = axial_round(q_float, r_float)
-
-            casilla = (q_round, r_round)
-
-            # Verificar si es una casilla válida
-            if casilla in self.mapa.hexagonos:
-                print(f"\nCasilla seleccionada: {casilla}")
-
-                # Mostrar menú contextual
-                self.menu.mostrar(evento.pos, casilla)
-
-                # Mostrar información
-                self._mostrar_info_casilla(casilla)
-            else:
-                print(f"Casilla {casilla} fuera del mapa")
-                self.menu.ocultar()
-
-        elif evento.button == 3:  # Clic derecho
-            print("Clic derecho: Cancelar")
-            self.menu.ocultar()
-
-            if self.moviendo_agente:
-                print("Movimiento cancelado")
-                self.moviendo_agente = False
-                self.ruta_actual = []
-                if self.agente_jugador:
-                    self.agente_jugador.actividad_actual = None
+        """Compatibilidad: delega al controlador de entrada."""
+        return self.input_controller.manejar_clic_mouse(evento)
 
     def _mostrar_info_casilla(self, casilla):
         """Mostrar información de la casilla seleccionada"""
@@ -664,187 +447,32 @@ class Simulador:
         return (int(rx), int(rz))
 
     def _calcular_ruta(self, inicio, destino):
-        """
-        Calcular ruta en línea recta usando algoritmo de Bresenham para hexágonos.
-        Retorna lista de hexágonos desde inicio (exclusivo) hasta destino (inclusivo).
-        """
-        if inicio == destino:
-            return []
-
-        # Algoritmo de línea recta axial (hexagonal)
-        q1, r1 = inicio
-        q2, r2 = destino
-
-        # Calcular distancia
-        distancia = self._distancia_hex(inicio, destino)
-
-        # Si la distancia es 1, ruta directa
-        if distancia == 1:
-            return [destino]
-
-        # Interpolación lineal en coordenadas axiales
-        ruta = []
-
-        # Para cada paso intermedio
-        for i in range(1, distancia + 1):
-            t = i / distancia
-
-            # Interpolar en float
-            q_float = q1 * (1 - t) + q2 * t
-            r_float = r1 * (1 - t) + r2 * t
-
-            # Redondear al hexágono más cercano
-            hex_redondeado = self._axial_round(q_float, r_float)
-
-            # No añadir si es el mismo que el anterior
-            if not ruta or hex_redondeado != ruta[-1]:
-                ruta.append(hex_redondeado)
-
-        return ruta
+        """Compatibilidad: delega el cálculo de ruta al sistema de movimiento."""
+        return self.movement.calcular_ruta(inicio, destino)
 
     def _distancia_hex(self, hex1, hex2):
-        """Distancia hexagonal entre dos casillas"""
-        return hex_distance(hex1, hex2)
+        """Distancia hexagonal entre dos casillas."""
+        return self.movement.distancia_hex(hex1, hex2)
 
     def _actualizar_movimiento_camara(self):
-        """Actualizar movimiento de cámara basado en teclas presionadas"""
-        if not any(self.teclas_presionadas.values()):
-            return
-
-        # Movimiento con WASD
-        dx, dy = 0, 0
-
-        if self.teclas_presionadas[pygame.K_w] or self.teclas_presionadas[pygame.K_UP]:
-            dy -= 1
-        if self.teclas_presionadas[pygame.K_s] or self.teclas_presionadas[pygame.K_DOWN]:
-            dy += 1
-        if self.teclas_presionadas[pygame.K_a] or self.teclas_presionadas[pygame.K_LEFT]:
-            dx -= 1
-        if self.teclas_presionadas[pygame.K_d] or self.teclas_presionadas[pygame.K_RIGHT]:
-            dx += 1
-
-        if dx != 0 or dy != 0:
-            self.camara.mover(dx, dy)
-            self.seguir_jugador = False
+        """Compatibilidad: delega al sistema de movimiento."""
+        return self.movement.actualizar_movimiento_camara()
 
     def _axial_round(self, q, r):
-        """Redondear coordenadas axiales flotantes a hexágono más cercano"""
-        # Convertir a cúbicas
-        x = q
-        z = r
-        y = -x - z
-
-        # Redondear
-        rx = round(x)
-        ry = round(y)
-        rz = round(z)
-
-        # Corrección de redondeo
-        x_diff = abs(rx - x)
-        y_diff = abs(ry - y)
-        z_diff = abs(rz - z)
-
-        if x_diff > y_diff and x_diff > z_diff:
-            rx = -ry - rz
-        elif y_diff > z_diff:
-            ry = -rx - rz
-        else:
-            rz = -rx - ry
-
-        return (int(rx), int(rz))
+        """Compatibilidad: delega redondeo axial al sistema de movimiento."""
+        return self.movement.axial_round(q, r)
 
     def mover_agente_a(self, agente, destino):
-        """Iniciar movimiento a una casilla destino"""
-        print('por mover_agente_a')
-        inicio = agente.ubicacion
-
-        if inicio == destino:
-            print(f"{agente.nombre} ya está en {destino}")
-            return False
-
-        # Verificar que el destino está en el mapa
-        if destino not in self.mapa.hexagonos:
-            print(f"Destino {destino} no está en el mapa")
-            return False
-
-        # Calcular ruta (usa la versión que prefieras)
-        self.ruta_actual = self._calcular_ruta(inicio, destino)  # Bresenham
-        # self.ruta_actual = self._calcular_ruta_simple(inicio, destino)  # Simple
-
-        if not self.ruta_actual:
-            print(f"No se pudo calcular ruta de {inicio} a {destino}")
-            return False
-
-        print(f"{agente.nombre} se mueve a {destino} ({len(self.ruta_actual)} pasos)")
-
-        # Configurar movimiento
-        self.moviendo_agente = True
-        agente.actividad_actual = "moviendose"
-
-        # NO mover inmediatamente - esperar al primer tick
-        print(f"Movimiento iniciado. Primer paso en el próximo tick.")
-
-        return True
+        """Iniciar movimiento a una casilla destino."""
+        return self.movement.mover_agente_a(agente, destino)
 
     def _avanzar_paso_movimiento(self):
-        """Mover UN paso por tick"""
-        if not self.ruta_actual or not self.moviendo_agente:
-            return False
-
-        agente = self.agente_jugador
-        if not agente:
-            return False
-
-        # Tomar el primer paso de la ruta
-        siguiente = self.ruta_actual.pop(0)
-
-        # Verificar validez
-        if siguiente not in self.mapa.hexagonos:
-            print(f"Error: Paso inválido {siguiente}")
-            self._finalizar_movimiento()
-            return False
-
-        # Actualizar ubicación
-        ubicacion_anterior = agente.ubicacion
-        agente.ubicacion = siguiente
-
-        # Consumir recursos (por paso)
-        agente.fisiologia.cansancio += 2
-        #agente.fisiologia.combustible = max(0, agente.fisiologia.combustible-0.017)
-        agente.fisiologia.energia = max(0, agente.fisiologia.energia - 1)
-
-        print(f"  {agente.nombre}: {ubicacion_anterior} → {siguiente}")
-
-        # Verificar si llegó
-        if not self.ruta_actual:
-            self._finalizar_movimiento()
-            return True  # Movimiento completado
-
-        return False  # Todavía en movimiento
+        """Compatibilidad: delega avance de paso al sistema de movimiento."""
+        return self.movement.avanzar_paso_movimiento()
 
     def _finalizar_movimiento(self):
-        """Finalizar movimiento correctamente"""
-        agente = self.agente_jugador
-        if agente:
-            destino = agente.ubicacion
-            print(f"{agente.nombre} llegó a {destino}")
-
-            # Verificar si llegó a un lugar especial
-            hex_destino = self.mapa.hexagonos.get(destino)
-            if hex_destino:
-                if destino == (0, 0):
-                    print("  (Estás en el área central)")
-                elif hex_destino.arboles > 0:
-                    print("  (Hay árboles aquí para talar)")
-                elif any(count > 0 for count in hex_destino.animales.values()):
-                    print("  (Hay animales aquí para cazar)")
-
-        # Resetear estado de movimiento
-        self.moviendo_agente = False
-        self.ruta_actual = []
-
-        if agente:
-            agente.actividad_actual = None
+        """Compatibilidad: delega finalización al sistema de movimiento."""
+        return self.movement.finalizar_movimiento()
 
     def _procesar_actividad_agente(self, agente):
         """Procesar la actividad actual del agente"""
