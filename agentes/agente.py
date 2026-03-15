@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import logging
+
 import numpy as np
 from enum import Enum
+from typing import Any
+
 from .fisiologia import Fisiologia
 import config
 
@@ -25,9 +30,17 @@ class Personalidad(Enum):
     ESFP = "Animador"
 
 class Agente:
-    id_counter = 0
+    id_counter: int = 0
 
-    def __init__(self, nombre, sexo, padre=None, madre=None, dia_nacimiento=None, edad=0):
+    def __init__(
+        self,
+        nombre: str,
+        sexo: str,
+        padre: Agente | None = None,
+        madre: Agente | None = None,
+        dia_nacimiento: int | None = None,
+        edad: float = 0,
+    ) -> None:
         self.id = Agente.id_counter
         Agente.id_counter += 1
 
@@ -36,6 +49,7 @@ class Agente:
         self.edad = edad  # años
         self.dia_nacimiento = dia_nacimiento
         self.vivo = True
+        self.edad_dias: float = 0
 
         # Genética heredada
         self.padre = padre
@@ -57,10 +71,10 @@ class Agente:
         self.personalidad = np.random.choice(list(Personalidad))
 
         # Sistema de actividades
-        self.actividad_restante = 0   # ticks que faltan para terminar
-        self.actividad_datos = {}      # datos adicionales (qué está recolectando, etc.)
-        self.actividad_actual = None  # None, "moviendose", "comiendo", "trabajando", etc.
-        self.actividad_destino = None  # Para actividades con objetivo
+        self.actividad_restante: int = 0   # ticks que faltan para terminar
+        self.actividad_datos: dict[str, Any] = {}      # datos adicionales (qué está recolectando, etc.)
+        self.actividad_actual: str | None = None  # None, "moviendose", "comiendo", "trabajando", etc.
+        self.actividad_destino: tuple[int, int] | None = None  # Para actividades con objetivo
 
         # Experiencia en actividades
         self.experiencia = {
@@ -81,8 +95,8 @@ class Agente:
 
         # Estado social
         self.pareja = None
-        self.hijos = []
-        self.afinidades = {}  # {agente_id: puntuacion}
+        self.hijos: list[Agente] = []
+        self.afinidades: dict[int, float] = {}  # {agente_id: puntuacion}
         self.ubicacion = (0, 0)
 
         # Control del jugador
@@ -91,7 +105,7 @@ class Agente:
 
 
 
-    def _heredar_altura(self):
+    def _heredar_altura(self) -> float:
         """Herencia de altura con variación genética"""
         if self.padre and self.madre:
             base = (self.padre.altura + self.madre.altura) / 2
@@ -102,25 +116,25 @@ class Agente:
         variacion = np.random.normal(0, 0.05)
         return max(1.4, min(2.1, base + variacion))
 
-    def _calcular_peso_inicial(self):
+    def _calcular_peso_inicial(self) -> float:
         """Peso basado en altura y sexo"""
         imc_base = 22 if self.sexo == "M" else 21
         return imc_base * (self.altura ** 2)
 
-    def _heredar_color(self):
+    def _heredar_color(self) -> str:
         """Herencia de colores (simplificado)"""
         if self.padre and self.madre:
             return np.random.choice([self.padre.color_piel, self.madre.color_piel])
         return f"#{np.random.randint(50, 200):02x}{np.random.randint(50, 200):02x}{np.random.randint(50, 200):02x}"
 
-    def _calcular_belleza(self):
+    def _calcular_belleza(self) -> float:
         """Belleza basada en simetría y características"""
         base = np.random.normal(50, 15)
         if self.padre and self.madre:
             base = (base + self.padre.belleza + self.madre.belleza) / 3
         return max(0, min(100, base))
 
-    def envejecer(self):
+    def envejecer(self) -> None:
         """Envejecer el agente"""
         self.edad += 1 / config.DIAS_POR_AÑO
 
@@ -130,7 +144,7 @@ class Agente:
             if np.random.random() < prob_muerte:
                 self.vivo = False
 
-    def puede_procrear(self, otro_agente):
+    def puede_procrear(self, otro_agente: Agente) -> bool:
         """Verificar si puede tener hijos con otro agente"""
         if not self.vivo or not otro_agente.vivo:
             return False
@@ -142,7 +156,7 @@ class Agente:
             return False
         return True
 
-    def procrear(self, pareja):
+    def procrear(self, pareja: Agente) -> Agente | None:
         """Crear un nuevo agente"""
         if not self.puede_procrear(pareja):
             return None
@@ -168,7 +182,7 @@ class Agente:
 
         return hijo
 
-    def actualizar_afinidad(self, otro_agente, interaccion):
+    def actualizar_afinidad(self, otro_agente: Agente, interaccion: str) -> None:
         """Actualizar afinidad con otro agente"""
         if otro_agente.id not in self.afinidades:
             self.afinidades[otro_agente.id] = 50
@@ -178,7 +192,7 @@ class Agente:
         factor_belleza = (self.belleza + otro_agente.belleza) / 200
         factor_carisma = (self.fisiologia.carisma + otro_agente.fisiologia.carisma) / 200
 
-        cambio = 0
+        cambio: float = 0
         if interaccion == "positiva":
             cambio = 5 * factor_personalidad * factor_belleza
         elif interaccion == "negativa":
@@ -187,7 +201,7 @@ class Agente:
         self.afinidades[otro_agente.id] = max(0, min(100,
             self.afinidades[otro_agente.id] + cambio))
 
-    def _compatibilidad_personalidad(self, otro_agente):
+    def _compatibilidad_personalidad(self, otro_agente: Agente) -> float:
         """Compatibilidad basada en personalidad"""
         # Simplificado - algunas personalidades son más compatibles
         compatibilidades = {
@@ -207,7 +221,7 @@ class Agente:
 
         return 1.0  # Compatibilidad neutral
 
-    def actualizar_tick(self):
+    def actualizar_tick(self) -> None:
         """Actualizar agente cada 30 minutos"""
         if not self.vivo:
             return
@@ -222,11 +236,11 @@ class Agente:
         # Actualizar fisiología
         self.fisiologia.actualizar_tick_30min()
 
-    def _cumpleannos(self):
+    def _cumpleannos(self) -> None:
         """Acciones en cumpleaños"""
         logger.debug(f"{self.nombre} cumple {self.edad} años!")
 
-    def consumir(self):
+    def consumir(self) -> None:
         """Consumir alimento"""
         # Calorías aproximadas por tipo de alimento
         calorias_por_unidad = {
@@ -244,7 +258,7 @@ class Agente:
             self.fisiologia.consumir_comida(150, agua_ml)
             self.inventario['comida'] = alimento-1
 
-    def realizar_actividad(self, actividad, intensidad=1):
+    def realizar_actividad(self, actividad: str, intensidad: int = 1) -> None:
         """Realizar una actividad"""
         # Registrar actividad actual
         self.actividad_actual = actividad
@@ -266,7 +280,7 @@ class Agente:
         self.fisiologia.hambre += 2 * intensidad
         self.fisiologia.sed += 3 * intensidad
 
-    def iniciar_actividad(self, actividad, duracion_ticks, **datos):
+    def iniciar_actividad(self, actividad: str, duracion_ticks: int, **datos: Any) -> bool:
         """Inicia una actividad que durará múltiples ticks"""
         if self.actividad_actual:
             logger.debug(f"{self.nombre} ya está {self.actividad_actual}")
@@ -278,7 +292,7 @@ class Agente:
         logger.debug(f"{self.nombre} comienza {actividad} ({duracion_ticks} ticks)")
         return True
 
-    def tick_actividad(self):
+    def tick_actividad(self) -> bool:
         """Procesa un tick de la actividad actual"""
         if not self.actividad_actual:
             return False
@@ -292,7 +306,7 @@ class Agente:
 
         return False  # Actividad aún en progreso
 
-    def _finalizar_actividad(self):
+    def _finalizar_actividad(self) -> None:
         """Limpia la actividad actual"""
         logger.debug(f"{self.nombre} terminó {self.actividad_actual}")
         self.actividad_actual = None
