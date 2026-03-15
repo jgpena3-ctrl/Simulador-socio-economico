@@ -14,6 +14,25 @@ El proyecto modela:
 
 ---
 
+## 1.1 Estado de implementación por subsistema
+
+> Convención: **Implementado** = funcional en código principal; **Parcial** = existe base funcional pero faltan casos/capas; **Pendiente** = planificado sin implementación integral.
+
+| Subsistema | Estado | Evidencia rápida |
+| --- | --- | --- |
+| Mundo hexagonal (`mundo/`) | Implementado | Generación de mapa, categorías y cámara funcional. |
+| Agentes y fisiología (`agentes/`) | Implementado | Modelo de agente con atributos, inventario y fisiología activa. |
+| Acciones y tiempo (`sistema/`, `engine/`) | Implementado | Acciones por ticks y ciclo temporal centralizado. |
+| Economía / mercado (`sistema/economia.py`, `ui/menu_mercado.py`) | Implementado | Ofertas de compra/venta y menú de mercado disponibles. |
+| IA de agentes (`agentes/ai_agentes.py`) | Implementado | Toma de decisiones por necesidades + personalidad ya operativa. |
+| Uso autónomo de mercado por IA | Parcial | La IA decide acciones base; el comercio autónomo aún no está integrado en su rutina. |
+| Interacciones sociales complejas | Parcial | Existe acción de socializar, pero sin sistema profundo de relaciones persistentes. |
+| Reproducción y ciclo de vida avanzado | Parcial | Hay bases y pendientes, pero no un sistema completo de crecimiento/reproducción. |
+| Enfermedades y salud avanzada | Pendiente | No hay módulo integral dedicado. |
+| Construcciones, trabajos/contratos y eventos amplios | Pendiente | Declarados como próximos features. |
+
+---
+
 ## 2. Componentes Principales
 
 ### 2.1 Mundo (`MapaHexagonal`)
@@ -236,11 +255,11 @@ Incluye estadísticas de precios, consulta de ofertas y publicación de nuevas o
 
 ---
 
-## 7. IA de Agentes (Próxima Fase)
+## 7. IA de Agentes (Estado actual: Implementado)
 
 - Sistema de prioridades basado en necesidades fisiológicas.
 - Decisiones influenciadas por personalidad.
-- Capacidad de usar el mercado (comprar/vender).
+- Integración con mercado autónomo: **parcial/pendiente de ampliación**.
 - Interacciones sociales y formación de relaciones.
 
 ---
