@@ -34,3 +34,5 @@ HEX_HEIGHT = HEX_SIZE * math.sqrt(3)  # Altura total
 LOG_LEVEL = "INFO"
 LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
+# Reproducibilidad (None = aleatorio, entero = ejecución determinista)
+SEED = None

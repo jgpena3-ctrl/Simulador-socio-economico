@@ -16,6 +16,7 @@ from engine.tick_system import TickSystem
 from render.world_renderer import WorldRenderer
 from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners, hex_distance
 from utils.logging_config import setup_logging
+from utils.random_config import setup_random_seed
 from sistema.economia import SistemaEconomico
 from sistema.acciones import Acciones
 import config
@@ -31,6 +32,7 @@ class Simulador:
 
     def __init__(self):
         setup_logging()
+        setup_random_seed()
         pygame.init()
         self.ancho, self.alto = 1200, 700
         self.pantalla = pygame.display.set_mode((self.ancho, self.alto))
