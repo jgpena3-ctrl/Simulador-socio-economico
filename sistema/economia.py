@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 # sistema/economia.py
 
 class SistemaEconomico:
@@ -27,7 +30,7 @@ class SistemaEconomico:
             "activa": True
         }
         self.ofertas_venta.append(oferta)
-        print(f"📢 Agente {agente_id} ofrece {cantidad} {producto} a {precio_unitario} monedas")
+        logger.debug(f"📢 Agente {agente_id} ofrece {cantidad} {producto} a {precio_unitario} monedas")
         return oferta["id"]
 
     def publicar_oferta_compra(self, agente_id, producto, cantidad, precio_maximo):
@@ -42,7 +45,7 @@ class SistemaEconomico:
             "activa": True
         }
         self.ofertas_compra.append(oferta)
-        print(f"📢 Agente {agente_id} busca comprar {cantidad} {producto} (max {precio_maximo})")
+        logger.debug(f"📢 Agente {agente_id} busca comprar {cantidad} {producto} (max {precio_maximo})")
         return oferta["id"]
 
     def buscar_ofertas_venta(self, producto=None, precio_max=None, calidad_min=None):

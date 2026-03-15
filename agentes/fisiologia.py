@@ -1,6 +1,9 @@
+import logging
 import config
 import numpy as np
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 class Fisiologia:
     def __init__(self, agente):
@@ -74,7 +77,7 @@ class Fisiologia:
         self.cansancio += self._actualizar_cansancio()
 
         # Energía basada en cansancio y nutrición
-        print('energia actualizada por actualizar_tick_30min')
+        logger.debug('energia actualizada por actualizar_tick_30min')
         if self.agente.actividad_actual != "durmiendo":
             self.energia = self.energia-(150/config.TICK_POR_DIA) #2/3 del dia en peddida de energia
             self.energia = max(0, min(100, self.energia))
@@ -122,7 +125,7 @@ class Fisiologia:
         # Debug/log
         cambio_peso = self.peso - peso_anterior
         if abs(cambio_peso) > 0.1:
-            print(f"{self.agente.nombre}: Peso cambiado {cambio_peso:.2f}kg, ahora {self.peso:.1f}kg")
+            logger.debug(f"{self.agente.nombre}: Peso cambiado {cambio_peso:.2f}kg, ahora {self.peso:.1f}kg")
 
     def actualizar_anual(self):
         """Actualiza valores que cambian anualmente (en cumpleaños)"""
@@ -339,7 +342,7 @@ class Fisiologia:
 
     def dormir(self, horas):
         """Efecto de dormir"""
-        print('se ejecutó dormir')
+        logger.debug('se ejecutó dormir')
         recuperacion = horas * 5  # 5% por hora
         self.cansancio = max(0, self.cansancio - recuperacion)
 

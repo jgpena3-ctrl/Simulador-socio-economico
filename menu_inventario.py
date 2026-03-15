@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 # menu_inventario.py (nuevo archivo)
 import pygame
 
@@ -15,12 +18,12 @@ class MenuInventario:
     def mostrar(self):
         """Abre el menú de inventario"""
         self.visible = True
-        print("\n=== INVENTARIO ABIERTO ===")
+        logger.debug("\n=== INVENTARIO ABIERTO ===")
 
     def ocultar(self):
         """Cierra el menú de inventario"""
         self.visible = False
-        print("Inventario cerrado")
+        logger.debug("Inventario cerrado")
 
     def dibujar(self, pantalla):
         """Dibuja el menú de inventario"""

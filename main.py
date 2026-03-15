@@ -1,5 +1,8 @@
+import logging
 from agentes.agente import Agente
 from agentes.ai_agentes import AIAgentes
+
+logger = logging.getLogger(__name__)
 #from agentes.agente_jugador import AgenteJugador
 from menuContestual import MenuContextual
 from menu_inventario import MenuInventario
@@ -12,6 +15,7 @@ from engine.movement import MovementSystem
 from engine.tick_system import TickSystem
 from render.world_renderer import WorldRenderer
 from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners, hex_distance
+from utils.logging_config import setup_logging
 from sistema.economia import SistemaEconomico
 from sistema.acciones import Acciones
 import config
@@ -26,6 +30,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class Simulador:
 
     def __init__(self):
+        setup_logging()
         pygame.init()
         self.ancho, self.alto = 1200, 700
         self.pantalla = pygame.display.set_mode((self.ancho, self.alto))
@@ -122,7 +127,7 @@ class Simulador:
 
     def _inicializar_mercado_inicial(self):
         """Crea ofertas iniciales simples para probar la interfaz"""
-        print("\n=== INICIALIZANDO MERCADO DE PRUEBA ===")
+        logger.debug("\n=== INICIALIZANDO MERCADO DE PRUEBA ===")
 
         # Productos de ejemplo
         productos = ["manzana", "pan", "madera", "carne", "piedra"]
@@ -144,9 +149,9 @@ class Simulador:
                 agente.id, producto, cantidad, precio, 1.0
             )
 
-            print(f"  Oferta {i+1}: {agente.nombre} vende {cantidad} {producto} a {precio} monedas")
+            logger.debug(f"  Oferta {i+1}: {agente.nombre} vende {cantidad} {producto} a {precio} monedas")
 
-        print("=== MERCADO INICIALIZADO ===\n")
+        logger.debug("=== MERCADO INICIALIZADO ===\n")
 
     def ejecutar_tick(self):
         """Ejecutar tick delegando al sistema de tiempo/simulación."""
@@ -179,7 +184,7 @@ class Simulador:
                         hijo = agente1.procrear(agente2)
                         if hijo:
                             self.agentes.append(hijo)
-                            print(f"Nacimiento: {hijo.nombre}")
+                            logger.debug(f"Nacimiento: {hijo.nombre}")
 
                             # Si es hijo del jugador, añadir a controlables a los 18
                             if (agente1.controlado_por_jugador or
@@ -365,33 +370,33 @@ class Simulador:
         agente = self.agente_jugador
         en_casilla = (casilla == agente.ubicacion)
 
-        print(f"=== INFORMACIÓN DE CASILLA {casilla} ===")
+        logger.debug(f"=== INFORMACIÓN DE CASILLA {casilla} ===")
 
         # Información general
         if casilla == (0, 0):
-            print("  ÁREA CENTRAL - Viviendas")
+            logger.debug("  ÁREA CENTRAL - Viviendas")
         elif abs(casilla[0]) + abs(casilla[1]) + abs(-casilla[0] - casilla[1]) <= 2:
-            print("  ZONA ECONÓMICA - Actividades")
+            logger.debug("  ZONA ECONÓMICA - Actividades")
         else:
-            print("  ZONA SILVESTRE - Recursos naturales")
+            logger.debug("  ZONA SILVESTRE - Recursos naturales")
 
         # Recursos
         if hex_info.arboles > 0:
-            print(f"  Árboles: {hex_info.arboles}")
+            logger.debug(f"  Árboles: {hex_info.arboles}")
         if hex_info.arbustos > 0:
-            print(f"  Arbustos: {hex_info.arbustos}")
+            logger.debug(f"  Arbustos: {hex_info.arbustos}")
         if hex_info.animales:
             for animal, cantidad in hex_info.animales.items():
                 if cantidad > 0:
-                    print(f"  {animal.capitalize()}: {cantidad}")
+                    logger.debug(f"  {animal.capitalize()}: {cantidad}")
 
         # Estado
         if en_casilla:
-            print("  (Tu agente está aquí)")
+            logger.debug("  (Tu agente está aquí)")
         elif self.agente_jugador:
             distancia = self._distancia_hex(self.agente_jugador.ubicacion, casilla)
-            print(f"  Distancia: {distancia} pasos")
-            print(f"  Tiempo estimado: {distancia * 30} minutos")
+            logger.debug(f"  Distancia: {distancia} pasos")
+            logger.debug(f"  Tiempo estimado: {distancia * 30} minutos")
 
     def _pixel_a_hex_preciso(self, x_pixel, y_pixel):
         """
@@ -486,20 +491,20 @@ class Simulador:
     def iniciar_actividad(self, agente, actividad, duracion_ticks=1, **kwargs):
         """Iniciar una actividad que consume tiempo"""
         if self.moviendo_agente:
-            print(f"{agente.nombre} no puede iniciar '{actividad}' mientras se mueve")
+            logger.debug(f"{agente.nombre} no puede iniciar '{actividad}' mientras se mueve")
             return False
 
         agente.actividad_actual = actividad
         agente.actividad_restante = duracion_ticks
         agente.actividad_destino = kwargs.get('destino', None)
 
-        print(f"{agente.nombre} inicia '{actividad}' ({duracion_ticks} ticks)")
+        logger.debug(f"{agente.nombre} inicia '{actividad}' ({duracion_ticks} ticks)")
         return True
 
     def _finalizar_actividad(self, agente):
         """Finalizar la actividad actual"""
         actividad = agente.actividad_actual
-        print(f"{agente.nombre} termina '{actividad}'")
+        logger.debug(f"{agente.nombre} termina '{actividad}'")
 
         # Efectos según actividad
         if actividad == "comiendo":
@@ -514,10 +519,10 @@ class Simulador:
 
     def calibrar_clics(self):
         """Función rápida de calibración"""
-        print("\n=== CALIBRACIÓN RÁPIDA ===")
-        print("Haz clic en el CENTRO de varios hexágonos")
-        print("Las coordenadas detectadas deberían coincidir")
-        print("Presiona 'C' para terminar\n")
+        logger.debug("\n=== CALIBRACIÓN RÁPIDA ===")
+        logger.debug("Haz clic en el CENTRO de varios hexágonos")
+        logger.debug("Las coordenadas detectadas deberían coincidir")
+        logger.debug("Presiona 'C' para terminar\n")
 
         calibrando = True
         while calibrando:
@@ -535,7 +540,7 @@ class Simulador:
             # Dibujar pantalla normal
             self.dibujar()
 
-        print("=== FIN CALIBRACIÓN ===")
+        logger.debug("=== FIN CALIBRACIÓN ===")
 
 if __name__ == "__main__":
     simulador = Simulador()

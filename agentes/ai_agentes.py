@@ -1,5 +1,8 @@
+import logging
 import numpy as np
 from agentes.agente import Personalidad
+
+logger = logging.getLogger(__name__)
 
 
 class AIAgentes:
@@ -12,26 +15,26 @@ class AIAgentes:
         """Toma de decisión por prioridades fisiológicas y personalidad."""
         if agente.fisiologia.necesita_dormir():
             self.sim.acciones._accion_dormir(agente)
-            print(f"{agente.nombre} duerme (IA)")
+            logger.debug(f"{agente.nombre} duerme (IA)")
             return
 
         if agente.fisiologia.necesita_comer():
             if agente.inventario.get("comida", 0) > 0:
                 self.sim.acciones._accion_comer(agente)
-                print(f"{agente.nombre} come (IA)")
+                logger.debug(f"{agente.nombre} come (IA)")
             else:
                 self.sim.acciones._accion_recolectar(agente)
-                print(f"{agente.nombre} busca comida (IA)")
+                logger.debug(f"{agente.nombre} busca comida (IA)")
             return
 
         if agente.personalidad in [Personalidad.ESTJ, Personalidad.ENTJ]:
             self.sim.acciones._accion_trabajar(agente)
-            print(f"{agente.nombre} trabaja (IA)")
+            logger.debug(f"{agente.nombre} trabaja (IA)")
             return
 
         if agente.personalidad in [Personalidad.ENFP, Personalidad.ESFP]:
             self.sim.acciones._accion_socializar(agente)
-            print(f"{agente.nombre} socializa (IA)")
+            logger.debug(f"{agente.nombre} socializa (IA)")
             return
 
         acciones = [
@@ -41,4 +44,4 @@ class AIAgentes:
         ]
         accion_elegida = np.random.choice(acciones)
         accion_elegida(agente)
-        print(f"{agente.nombre} {accion_elegida.__name__} (IA aleatoria)")
+        logger.debug(f"{agente.nombre} {accion_elegida.__name__} (IA aleatoria)")
