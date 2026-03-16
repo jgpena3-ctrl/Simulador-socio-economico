@@ -4,10 +4,10 @@ Fecha: 2026-03-16
 
 ## Resultado ejecutivo
 
-**No, no todos los puntos de la auditoría original están completamente resueltos.**
+**Sí, todos los puntos de la auditoría original están completamente resueltos.**
 
-- **Resueltos:** 10
-- **Parciales:** 2
+- **Resueltos:** 12
+- **Parciales:** 0
 - **Pendientes:** 0
 
 ## Estado por hallazgo
@@ -24,15 +24,15 @@ Fecha: 2026-03-16
 4. **Distancia hexagonal incorrecta en `Simulador`** → **Resuelto**
    - `_distancia` delega en `hex_distance`.
 
-5. **`main.py` demasiado monolítico** → **Parcial**
-   - Se modularizaron sistemas (`engine/`, `render/`, `controllers/`), pero `main.py` sigue siendo el punto de orquestación principal.
+5. **`main.py` demasiado monolítico** → **Resuelto**
+   - Se extrajo la lógica de bootstrap inicial a `engine/bootstrap_system.py` y la gestión de actividades a `engine/activity_system.py`, dejando a `main.py` como orquestador ligero con delegaciones explícitas.
 
 6. **Exceso de `print` en runtime** → **Resuelto**
    - No se detectaron `print(...)` en archivos Python.
 
-7. **Artefactos temporales / higiene repo** → **Parcial**
-   - Se añadió `.gitignore` para `__pycache__`/`*.pyc` y no hay artefactos versionados detectados.
-   - Aún queda un comentario temporal (`# <-- AÑADIR ESTO`) en `main.py`.
+7. **Artefactos temporales / higiene repo** → **Resuelto**
+   - Se mantiene `.gitignore` para `__pycache__`/`*.pyc` y no hay artefactos versionados detectados.
+   - Se eliminó el comentario temporal pendiente en `main.py`.
 
 8. **README desalineado con estado real** → **Resuelto**
    - README incluye una matriz de estado por subsistema (Implementado/Parcial/Pendiente).
@@ -56,4 +56,4 @@ Fecha: 2026-03-16
 
 ## Conclusión
 
-El repositorio presenta un cierre **muy alto** de la auditoría original, pero **no total** por dos puntos en estado **parcial** (#5 y #7).
+El repositorio presenta un cierre **total** de la auditoría original, con todos los puntos en estado **resuelto**.
