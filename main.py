@@ -1,5 +1,4 @@
 import logging
-from agentes.agente import Agente
 from agentes.ai_agentes import AIAgentes
 
 logger = logging.getLogger(__name__)
@@ -13,6 +12,8 @@ from ui.interfaz import InterfazSimulador
 from controllers.input_controller import InputController
 from engine.movement import MovementSystem
 from engine.tick_system import TickSystem
+from engine.activity_system import ActivitySystem
+from engine.bootstrap_system import BootstrapSystem
 from render.world_renderer import WorldRenderer
 from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners, hex_distance
 from utils.logging_config import setup_logging
@@ -39,7 +40,7 @@ class Simulador:
         pygame.display.set_caption("Simulador Socio-Económico Multiagente")
 
         # Variable de control principal
-        self.ejecutando = True  # <-- AÑADIR ESTO
+        self.ejecutando = True
 
         # Sistemas
         self.mapa = MapaHexagonal(radio=16)
@@ -51,6 +52,8 @@ class Simulador:
 
         # Capas por responsabilidad
         self.tick_system = TickSystem(self)
+        self.activity_system = ActivitySystem(self)
+        self.bootstrap_system = BootstrapSystem(self)
         self.movement = MovementSystem(self)
         self.renderer = WorldRenderer(self)
         self.input_controller = InputController(self)
@@ -86,7 +89,6 @@ class Simulador:
         self.moviendo_agente = False
 
         # Configuración simple (REEMPLAZAR Configuracion())
-        self.ejecutando = True
         self.VELOCIDAD_MOVIMIENTO = 1
 
         # Sistema hexagonal
@@ -100,60 +102,15 @@ class Simulador:
         # UI
         self.font = pygame.font.SysFont(None, 24)
 
-        self._inicializar_agentes()
+        self.bootstrap_system.inicializar_agentes()
 
     def _inicializar_agentes(self):
-        """Crear agentes iniciales"""
-        # Crear agente del jugador
-        self.agente_jugador = Agente("Jugador", "M", dia_nacimiento=np.random.randint(1, config.DIAS_POR_AÑO + 1), edad=18)
-        self.agente_jugador.controlado_por_jugador = True
-        self.agente_jugador.ubicacion = (0, 0)  # Centro del mapa
-        self.agentes.append(self.agente_jugador)
-        self.agentes_controlables.append(self.agente_jugador)
-
-        # Crear 20 agentes IA iniciales
-        nombres_m = ["Carlos", "Juan", "Pedro", "Luis", "Miguel"]
-        nombres_f = ["Ana", "Maria", "Laura", "Sofia", "Elena"]
-
-        for i in range(20):
-            sexo = np.random.choice(["M", "F"])
-            if sexo == "M":
-                nombre = np.random.choice(nombres_m) + str(i)
-            else:
-                nombre = np.random.choice(nombres_f) + str(i)
-
-            agente = Agente(nombre, sexo, dia_nacimiento=np.random.randint(1, config.DIAS_POR_AÑO + 1), edad=18)
-            agente.ubicacion = (0, 0)
-            self.agentes.append(agente)
-        self._inicializar_mercado_inicial()
+        """Compatibilidad: delega bootstrap de agentes."""
+        return self.bootstrap_system.inicializar_agentes()
 
     def _inicializar_mercado_inicial(self):
-        """Crea ofertas iniciales simples para probar la interfaz"""
-        logger.debug("\n=== INICIALIZANDO MERCADO DE PRUEBA ===")
-
-        # Productos de ejemplo
-        productos = ["manzana", "pan", "madera", "carne", "piedra"]
-
-        # Crear 5 ofertas aleatorias
-        for i in range(5):
-            # Seleccionar agente aleatorio (que no sea el jugador)
-            agentes_npc = [a for a in self.agentes if a != self.agente_jugador]
-            if not agentes_npc:
-                break
-
-            agente = np.random.choice(agentes_npc)
-            producto = np.random.choice(productos)
-            cantidad = np.random.randint(1, 6)
-            precio = np.random.randint(5, 30)
-
-            # Publicar oferta directamente en el sistema económico
-            oferta_id = self.economia.publicar_oferta_venta(
-                agente.id, producto, cantidad, precio, 1.0
-            )
-
-            logger.debug(f"  Oferta {i+1}: {agente.nombre} vende {cantidad} {producto} a {precio} monedas")
-
-        logger.debug("=== MERCADO INICIALIZADO ===\n")
+        """Compatibilidad: delega bootstrap de mercado."""
+        return self.bootstrap_system.inicializar_mercado_inicial()
 
     def ejecutar_tick(self):
         """Ejecutar tick delegando al sistema de tiempo/simulación."""
@@ -482,42 +439,16 @@ class Simulador:
         return self.movement.finalizar_movimiento()
 
     def _procesar_actividad_agente(self, agente):
-        """Procesar la actividad actual del agente"""
-        if agente.actividad_actual and agente.actividad_restante > 0:
-            agente.actividad_restante -= 1
-
-            # Si la actividad terminó
-            if agente.actividad_restante <= 0:
-                self._finalizar_actividad(agente)
+        """Compatibilidad: delega procesamiento de actividad."""
+        return self.activity_system.procesar_actividad_agente(agente)
 
     def iniciar_actividad(self, agente, actividad, duracion_ticks=1, **kwargs):
-        """Iniciar una actividad que consume tiempo"""
-        if self.moviendo_agente:
-            logger.debug(f"{agente.nombre} no puede iniciar '{actividad}' mientras se mueve")
-            return False
-
-        agente.actividad_actual = actividad
-        agente.actividad_restante = duracion_ticks
-        agente.actividad_destino = kwargs.get('destino', None)
-
-        logger.debug(f"{agente.nombre} inicia '{actividad}' ({duracion_ticks} ticks)")
-        return True
+        """Compatibilidad: delega inicio de actividad."""
+        return self.activity_system.iniciar_actividad(agente, actividad, duracion_ticks, **kwargs)
 
     def _finalizar_actividad(self, agente):
-        """Finalizar la actividad actual"""
-        actividad = agente.actividad_actual
-        logger.debug(f"{agente.nombre} termina '{actividad}'")
-
-        # Efectos según actividad
-        if actividad == "comiendo":
-            agente.fisiologia.hambre = max(0, agente.fisiologia.hambre - 30)
-        elif actividad == "durmiendo":
-            agente.fisiologia.cansancio = max(0, agente.fisiologia.cansancio - 50)
-
-        # Resetear actividad
-        agente.actividad_actual = None
-        agente.actividad_restante = 0
-        agente.actividad_destino = None
+        """Compatibilidad: delega finalización de actividad."""
+        return self.activity_system.finalizar_actividad(agente)
 
     def calibrar_clics(self):
         """Función rápida de calibración"""
