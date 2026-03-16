@@ -15,14 +15,12 @@ from engine.tick_system import TickSystem
 from engine.activity_system import ActivitySystem
 from engine.bootstrap_system import BootstrapSystem
 from render.world_renderer import WorldRenderer
-from utils.hex_math import pixel_to_axial, axial_round, axial_to_pixel, get_hex_corners, hex_distance
+from utils.hex_math import hex_distance
 from utils.logging_config import setup_logging
 from utils.random_config import setup_random_seed
 from sistema.economia import SistemaEconomico
 from sistema.acciones import Acciones
 import config
-import math
-import numpy as np
 import os
 import pygame
 import sys
@@ -120,39 +118,8 @@ class Simulador:
         """Delega la IA de NPCs al módulo de IA de agentes."""
         return self.ai_agentes.decidir(agente)
 
-    def _procesar_reproduccion(self):
-        """Procesar reproducción entre agentes"""
-        # Buscar parejas potenciales
-        for agente1 in self.agentes:
-            if agente1.pareja is not None:
-                continue
-
-            for agente2 in self.agentes:
-                if agente2 == agente1 or agente2.pareja is not None:
-                    continue
-
-                # Verificar compatibilidad y proximidad
-                if (agente1.puede_procrear(agente2) and
-                    self._distancia(agente1.ubicacion, agente2.ubicacion) < 2):
-
-                    # Probabilidad basada en afinidad
-                    afinidad = agente1.afinidades.get(agente2.id, 50)
-                    prob = min(0.1, afinidad / 1000)  # Baja probabilidad
-
-                    if np.random.random() < prob:
-                        hijo = agente1.procrear(agente2)
-                        if hijo:
-                            self.agentes.append(hijo)
-                            logger.debug(f"Nacimiento: {hijo.nombre}")
-
-                            # Si es hijo del jugador, añadir a controlables a los 18
-                            if (agente1.controlado_por_jugador or
-                                agente2.controlado_por_jugador):
-                                # Se podrá controlar cuando cumpla 18
-                                pass
-
     def _distancia(self, pos1, pos2):
-        """Distancia entre dos posiciones hexagonales"""
+        """Distancia entre dos posiciones hexagonales."""
         return hex_distance(pos1, pos2)
 
     def dibujar(self):
@@ -163,115 +130,10 @@ class Simulador:
         """Delega colores de render al módulo de interfaz."""
         return self.interfaz.color_para_hex(hexagono)
 
-    def _dibujar_debug_clics(self):
-        """Dibujar información de debug de clics"""
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-
-        # Convertir a coordenadas del mundo
-        world_x = mouse_x - self.ancho // 2
-        world_y = mouse_y - self.alto // 2
-
-        # Obtener hexágono bajo el mouse
-        q_float, r_float = pixel_to_axial(world_x, world_y,
-                                        self.hex_size, self.hex_flat)
-        q_round, r_round = axial_round(q_float, r_float)
-
-        # Información de debug
-        font = pygame.font.SysFont(None, 20)
-
-        textos = [
-            f"Mouse: ({mouse_x}, {mouse_y})",
-            f"Mundo: ({world_x:.0f}, {world_y:.0f})",
-            f"Hex float: ({q_float:.2f}, {r_float:.2f})",
-            f"Hex redondeado: ({q_round}, {r_round})"
-        ]
-
-        y = 30
-        for texto in textos:
-            superficie = font.render(texto, True, (255, 255, 0))
-            self.pantalla.blit(superficie, (self.ancho - 350, y))
-            y += 25
-
-        # Cruz en el mouse
-        pygame.draw.line(self.pantalla, (255, 255, 0),
-                        (mouse_x - 10, mouse_y), (mouse_x + 10, mouse_y), 2)
-        pygame.draw.line(self.pantalla, (255, 255, 0),
-                        (mouse_x, mouse_y - 10), (mouse_x, mouse_y + 10), 2)
-
-        # Dibujar hexágono bajo el mouse
-        if (q_round, r_round) in self.mapa.hexagonos:
-            x_hex, y_hex = axial_to_pixel(q_round, r_round, self.hex_size, self.hex_flat)
-            x_pantalla = self.ancho // 2 + x_hex
-            y_pantalla = self.alto // 2 + y_hex
-
-            vertices = get_hex_corners(x_pantalla, y_pantalla,
-                                     self.hex_size, self.hex_flat)
-            pygame.draw.polygon(self.pantalla, (255, 255, 0), vertices, 3)
-
     def _esta_en_pantalla(self, x, y, margen=100):
         """Verificar si una posición está visible"""
         return (-margen <= x <= self.ancho + margen and
                 -margen <= y <= self.alto + margen)
-
-    def _hex_a_pixel(self, q, r, tamaño):
-        """Convertir coordenadas hexagonales a píxeles"""
-        x = tamaño * (3/2 * q)
-        y = tamaño * (3**0.5/2 * q + 3**0.5 * r)
-        return x, y
-
-    def _calcular_vertices_hex(self, centro_x, centro_y, tamaño):
-        """Calcular los 6 vértices de un hexágono"""
-        vertices = []
-        for i in range(6):
-            angulo = 2 * math.pi / 6 * i
-            x = centro_x + tamaño * math.cos(angulo)
-            y = centro_y + tamaño * math.sin(angulo)
-            vertices.append((x, y))
-        return vertices
-
-    def _hex_en_pantalla(self, x, y, tamaño):
-        """Verificar si un hexágono está visible en pantalla"""
-        margen = tamaño * 2
-        return (-margen <= x <= self.ancho + margen and
-                -margen <= y <= self.alto + margen)
-
-    def _color_por_tipo_hex(self, hexagono):
-        """Determinar color del hexágono"""
-        # Área central (0,0)
-        if hexagono.q == 0 and hexagono.r == 0:
-            return (100, 100, 200)  # Azul para centro
-
-        # Casillas adyacentes al centro
-        distancia = abs(hexagono.q) + abs(hexagono.r) + abs(-hexagono.q - hexagono.r)
-        if distancia <= 2:
-            return (150, 10, 10)  # Amarillo verdoso para zona económica
-
-        # Áreas con recursos
-        if hexagono.arboles > 5:
-            verde = min(200, 50 + hexagono.arboles * 10)
-            return (50, verde, 50)
-
-        # Tierra normal
-        return (100, 80, 60)
-
-    def _dibujar_debug(self):
-        """Dibujar información de debug"""
-        # Mostrar posición del mouse
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        hex_mouse = self._pixel_a_hex_preciso(mouse_x, mouse_y)
-
-        font = pygame.font.SysFont(None, 20)
-
-        # Información del mouse
-        texto_mouse = f"Mouse: ({mouse_x}, {mouse_y}) -> Hex: {hex_mouse}"
-        superficie = font.render(texto_mouse, True, (255, 255, 0))
-        self.pantalla.blit(superficie, (self.ancho - 350, 30))
-
-        # Cruz en el mouse para referencia
-        pygame.draw.line(self.pantalla, (255, 255, 0),
-                        (mouse_x - 10, mouse_y), (mouse_x + 10, mouse_y), 1)
-        pygame.draw.line(self.pantalla, (255, 255, 0),
-                        (mouse_x, mouse_y - 10), (mouse_x, mouse_y + 10), 1)
 
     def _dibujar_ui(self):
         """Delega la UI al módulo de interfaz."""
@@ -357,59 +219,6 @@ class Simulador:
             logger.debug(f"  Distancia: {distancia} pasos")
             logger.debug(f"  Tiempo estimado: {distancia * 30} minutos")
 
-    def _pixel_a_hex_preciso(self, x_pixel, y_pixel):
-        """
-        Convertir coordenadas de píxel a coordenadas hexagonales precisas.
-        Usa el sistema de coordenadas axiales.
-        """
-        tamaño = self.TAMANO_HEX
-        centro_x, centro_y = self.ancho // 2, self.alto // 2
-
-        # 1. Convertir a coordenadas relativas al centro del mapa
-        x_rel = x_pixel - centro_x
-        y_rel = y_pixel - centro_y
-
-        # 2. Para una cámara estática (sin scroll/zoom por ahora)
-        # Si tienes cámara, necesitarías ajustar con: x_rel -= self.camara.x * tamaño, etc.
-
-        # 3. Convertir a coordenadas hexagonales usando coordenadas axiales
-        # Fórmulas para hexágonos punto-arriba
-        q = (x_rel * (3/2)) / tamaño
-        r = ((-x_rel / 2) + (y_rel * (3**0.5) / 2)) / tamaño
-
-        # 4. Convertir a coordenadas cúbicas y redondear
-        return self._axial_a_hex_redondeado(q, r)
-
-    def _axial_a_hex_redondeado(self, q, r):
-        """
-        Convertir coordenadas axiales (q, r) a hexágono redondeado
-        usando coordenadas cúbicas.
-        """
-        # Convertir a coordenadas cúbicas
-        x = q
-        z = r
-        y = -x - z
-
-        # Redondear a hexágono más cercano
-        rx = round(x)
-        ry = round(y)
-        rz = round(z)
-
-        # Corrección de redondeo para coordenadas cúbicas
-        x_diff = abs(rx - x)
-        y_diff = abs(ry - y)
-        z_diff = abs(rz - z)
-
-        if x_diff > y_diff and x_diff > z_diff:
-            rx = -ry - rz
-        elif y_diff > z_diff:
-            ry = -rx - rz
-        else:
-            rz = -rx - ry
-
-        # Retornar coordenadas axiales (q, r)
-        return (int(rx), int(rz))
-
     def _calcular_ruta(self, inicio, destino):
         """Compatibilidad: delega el cálculo de ruta al sistema de movimiento."""
         return self.movement.calcular_ruta(inicio, destino)
@@ -450,30 +259,6 @@ class Simulador:
         """Compatibilidad: delega finalización de actividad."""
         return self.activity_system.finalizar_actividad(agente)
 
-    def calibrar_clics(self):
-        """Función rápida de calibración"""
-        logger.debug("\n=== CALIBRACIÓN RÁPIDA ===")
-        logger.debug("Haz clic en el CENTRO de varios hexágonos")
-        logger.debug("Las coordenadas detectadas deberían coincidir")
-        logger.debug("Presiona 'C' para terminar\n")
-
-        calibrando = True
-        while calibrando:
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    self.ejecutando = False
-                    calibrando = False
-                elif evento.type == pygame.KEYDOWN:
-                    if evento.key == pygame.K_c:
-                        calibrando = False
-                elif evento.type == pygame.MOUSEBUTTONDOWN:
-                    if evento.button == 1:
-                        self._manejar_clic_mouse(evento)
-
-            # Dibujar pantalla normal
-            self.dibujar()
-
-        logger.debug("=== FIN CALIBRACIÓN ===")
 
 if __name__ == "__main__":
     simulador = Simulador()
