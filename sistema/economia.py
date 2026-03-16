@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -98,9 +98,9 @@ class SistemaEconomico:
 
     def buscar_ofertas_venta(
         self,
-        producto: str | None = None,
-        precio_max: float | None = None,
-        calidad_min: float | None = None,
+        producto: Optional[str] = None,
+        precio_max: Optional[float] = None,
+        calidad_min: Optional[float] = None,
     ) -> list[OfertaVenta]:
         resultados: list[OfertaVenta] = []
         for oferta in self.ofertas_venta:
@@ -115,13 +115,13 @@ class SistemaEconomico:
             resultados.append(oferta)
         return sorted(resultados, key=lambda x: x["precio_unitario"])
 
-    def get_oferta_venta(self, oferta_id: int) -> OfertaVenta | None:
+    def get_oferta_venta(self, oferta_id: int) -> Optional[OfertaVenta]:
         return next((oferta for oferta in self.ofertas_venta if oferta["id"] == oferta_id), None)
 
     def buscar_ofertas_compra(
         self,
-        producto: str | None = None,
-        precio_min: float | None = None,
+        producto: Optional[str] = None,
+        precio_min: Optional[float] = None,
     ) -> list[OfertaCompra]:
         resultados: list[OfertaCompra] = []
         for oferta in self.ofertas_compra:
@@ -134,7 +134,7 @@ class SistemaEconomico:
             resultados.append(oferta)
         return sorted(resultados, key=lambda x: x["precio_maximo"], reverse=True)
 
-    def get_oferta_compra(self, oferta_id: int) -> OfertaCompra | None:
+    def get_oferta_compra(self, oferta_id: int) -> Optional[OfertaCompra]:
         return next((oferta for oferta in self.ofertas_compra if oferta["id"] == oferta_id), None)
 
     def realizar_transaccion(
@@ -142,7 +142,7 @@ class SistemaEconomico:
         oferta_venta_id: int,
         oferta_compra_id: int,
         cantidad: int,
-    ) -> Transaccion | bool:
+    ) -> Union[Transaccion, bool]:
         oferta_venta = next((o for o in self.ofertas_venta if o["id"] == oferta_venta_id), None)
         oferta_compra = next((o for o in self.ofertas_compra if o["id"] == oferta_compra_id), None)
 
