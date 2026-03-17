@@ -36,11 +36,6 @@ class ActivitySystem:
         actividad = agente.actividad_actual
         logger.debug(f"{agente.nombre} termina '{actividad}'")
 
-        if actividad == "comiendo":
-            agente.fisiologia.hambre = max(0, agente.fisiologia.hambre - 30)
-        elif actividad == "durmiendo":
-            agente.fisiologia.cansancio = max(0, agente.fisiologia.cansancio - 50)
-
         agente.actividad_actual = None
         agente.actividad_restante = 0
         agente.actividad_destino = None
