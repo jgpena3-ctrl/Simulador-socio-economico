@@ -42,10 +42,11 @@ El proyecto modela:
 
 #### Recursos por casilla
 
-- `arboles`: cantidad de árboles.
-- `arbustos`: cantidad de arbustos.
+- `arboles`: cantidad de árboles (separar entre arboles frutales y no frutales, ademas de especies de arboles).
+- `arbustos`: cantidad de arbustos(separar entre especies de arbustos).
+- `pasto`: de diferencia entre corto y largo, los largos permite alimentar a los herbiboros.
 - `animales`: diccionario con especies y cantidades.
-- `frutos`: frutos disponibles para recolectar.
+- `frutos`: frutos disponibles para recolectar(diferenciar entre cada tipo que depende de la especie de arbol o arbusto).
 
 #### Categorías de casillas
 
@@ -59,8 +60,7 @@ El proyecto modela:
   - `(1,-1)`: Servicios Cívicos
   - `(-1,1)`: Centro Comunitario
 
-- **Resto del mapa:** clasificadas por distancia (bosque, montaña, etc.).
-
+- **Resto del mapa:** ecosistema autonomo 
 ### 2.2 Agentes
 
 #### Atributos fijos (genética)
@@ -74,21 +74,31 @@ El proyecto modela:
 
 **Estados (0-100):**
 
-- `hambre`, `sed`, `cansancio`, `energía`
+- `saciedad`: el inverso de habre actualmente nombrado `combustible`(pendiente por cambiar el nombre de la variable) disminulle con cada tick durando del 100% a 0% 12 tick, si se lleva al 100% aumenta el limite de saciedad y si llega a 0% disminulle simulando la capacidad estomacal pero independiente de limite de saciedad siempre se vacia en 12 ticks, así simulamos el apetito de los agentes ,
+- `sed`: funcionalidad sin especificar,
+- `cansancio`: se acumula dependiendo de la actividad que realice actiividades de exigencia minima como andar, pescar, cocinar generarán 1 de cansancio, de exigencia media como cazar, recolectar, lavar ropa, generan 2 de cansancio y exigencias maximas como talar, minar, herreria, carpintería generan 3 de cansancio (mecanica sin implementar)
+- `energia`: regula la fase de sueño de los agentes funcionando como un reloj circadiano, recuperando en 8 horas de sueño nocturno la totalidad de la energia que proporciona 16 horas de vigilia con energia, dormir en las horas diurnas recupera la energia al mismo ritmo de se gasta en vigilia.
+
 
 **Capacidades base (heredadas):**
 
 - `fuerza_base`, `agilidad_base`, `resistencia_base`
 - `inteligencia`, `carisma`
 
+**Esperiencias:**
+
+cada actividad o habilidad tiene facultad de acumular experiencia, cada tick gastado en una tarea genera experiencia en dicha tarea, siguiendo la creencia popular se requieren 10 mil horas o 20 mil ticks para volverse experto en una habilidad o maxearlo al 100% esto para la configuracion "normal" de tiempo en el juego (remitace al punto 3. Sistema de Tiempo)
+
 **Capacidades actuales (afectadas por fatiga):**
 
+- Cada capacidad fisica actual se calcula de la siquiente manera: (capacidad_base+capacidad_entrenada)*capacidad fisiologica (que es una distribucion normal normalizada por la edad)
 - `fuerza_actual`, `agilidad_actual`, `resistencia_actual`
+- Las capacidades actuales se ven afectadas por el imc siendo la agilidad y resistencia afectadas negativamente y la fuerza positivamente
+-Las capacidades tambien se ven afectadas negativamente por el alto cansancio y la baja energia
 
 **Metabolismo:**
 
 - `peso`, `imc`, `tmb` (Tasa Metabólica Basal)
-- `calorias_consumidas_hoy`, `calorias_gastadas_hoy`
 
 #### Inventario
 
@@ -124,7 +134,9 @@ El proyecto modela:
 ### Conversiones
 
 - `1 día = 48 ticks`
-- `1 año = 365 días = 17,520 ticks`
+- `1 semana = 7 día`
+- `1 mes = (ajustable entre 1 y 4 semanas)`
+- `1 año = (ajustable en 4, 8, 12 meses + 1 día)`: se ajusta un día mas para que roten los dias para cada semana a lo largo de los años, con esa configuracion el año tendría max 337 dias y min 29 dias, las experiencias por ticks al igual que las variables que cambian con la edad como fisiologia se ajustarán  segun el numero de días que tenga un año para que sean equivalentes en el transcurso de un año así si tengo configurado 2 semanas pos mes en vez de 4 la experiencia de un tick al cazar será del doble respecto al que se tendría en un año "normal" (4 semanas y 12 meses).
 
 ### Banderas temporales
 
@@ -143,45 +155,32 @@ El proyecto modela:
 
 - Calcula ruta en línea recta hexagonal.
 - Consume `1 tick` por casilla.
-- Afecta:
-  - `cansancio += 2`
-  - `hambre += 1`
 
-### 4.2 Recolectar (duración: 3 ticks)
+### 4.2 Recolectar (duración: 1 ticks)
 
 - Probabilidad de encontrar: basada en densidad de vegetación.
 - Cantidad obtenida: aleatoria con bonus por experiencia.
 - Reduce `frutos` de la casilla.
-- Afecta:
-  - `cansancio += 5`
-  - `hambre += 3`
 
-### 4.3 Cazar (duración: 4 ticks)
+### 4.3 Cazar (duración: 1 ticks)
 
 - Probabilidad de encontrar: basada en densidad de animales.
-- Probabilidad de éxito: `50%` + bonus por experiencia/fuerza/agilidad.
+- Probabilidad de éxito: `50%`*experiencia requerida (puntería con arco, puntería con lanza, sagacidad con las mano(tal vez)) + `50%`*capacidades fisicas requerídas (dependiendo de la herramienta de caza)*dificultad_animal.
 - Reduce población del animal objetivo.
-- Afecta:
-  - `cansancio += 15`
-  - `hambre += 8`
-  - `energía -= 10`
 
 ### 4.4 Talar (duración: 4 ticks)
-
-- Probabilidad de éxito: `70%` + bonus por experiencia/fuerza.
-- Madera obtenida: base `5` + bonus.
+- se requiere hacha para realizarlo
+- Probabilidad de éxito: `100%` pero la experiencia de tala otorga la probabilidad de reducir 1 tick de tala y las capacidades fisicas tambien otorgan la probabilidad de reducir otro tick de tala.
+- Madera obtenida: depende del tipo de arbol y su edad.
 - Reduce `arboles` de la casilla en `1`.
-- Afecta:
-  - `cansancio += 15`
-  - `hambre += 8`
 
 ### 4.5 Descansar (duración: 3 ticks)
 
 - Solo en casillas habitables (centro o viviendas).
 - Reduce cansancio y aumenta energía.
 - Afecta:
-  - `cansancio -= 24%`
-  - `energía += 15%`
+  - `cansancio -= x%` valor no especificado por el momento.
+  - `energía += 6.25%`:por cada tick dormido por la noche, `3.125%` por cada tick dormido por el día.
 
 ### 4.6 Mercado
 
@@ -200,15 +199,15 @@ El proyecto modela:
 # Oferta de venta
 {
     "id": int, "agente_id": int, "producto": str,
-    "cantidad": int, "precio_unitario": int,
+    "cantidad": int, "precio_unitario": float, "precio_minimo": float,
     "calidad": float, "fecha_tick": int, "activa": bool
 }
 
 # Oferta de compra
 {
     "id": int, "agente_id": int, "producto": str,
-    "cantidad": int, "precio_maximo": int,
-    "fecha_tick": int, "activa": bool
+    "cantidad": int, "precio_unitario": float, "precio_maximo": float,
+    "calidad": float, "fecha_tick": int, "activa": bool
 }
 ```
 
@@ -240,9 +239,25 @@ El proyecto modela:
 
 Flujo:
 
-1. Acción
-2. Producto
-3. Detalle
+- `comprar`, `vender`, `ofertar_compra`, `ofertar_venta`, `cancelar_oferta`
+- **comprar**
+- aplicar filtros, (nombre del articulo, categoria(alimento, herramienta, material), tipos de alimento(carnes, carbohidratos, lipidos, frutas, verduras))y calidad.
+- se despliega una lista de menor a mayor con los productos ofertados segun el filtro, junto con el vendedor y la cantidad.
+- se selecciona el producto que se deseas, proporciona la cantidad y se realiza la compra.
+- el vendedor al que le compraste gana puntos de afinidad por ti.
+- **vender**
+- seleciionas el producto que quieres vender
+- se despliega oferta de compradores de ese producto de mayor a menor precio, junto con el numbre de comprador y la cantidad.
+- selecciona una oferta de la lista, proporciona la cantidad y se realiza la venta.
+- el comprador al que le compraste gana puntos de afinidad por ti.
+- **ofertar_compra**
+- busca el producto a ofertas mediente los filtros.
+- proporciona los valores necesarios para la oferta especificados en el punto 5.1 Ofertas y publica.
+- **ofertar_venta**
+- seleciona el producto de tu inventario
+- proporciona los valores necesarios para la oferta especificados en el punto 5.1 Ofertas y publica.
+- la cantidad de ese producto ofertado saldra de tu inventario.
+
 
 Incluye estadísticas de precios, consulta de ofertas y publicación de nuevas ofertas.
 
@@ -256,11 +271,12 @@ Incluye estadísticas de precios, consulta de ofertas y publicación de nuevas o
 ---
 
 ## 7. IA de Agentes (Estado actual: Implementado)
-
-- Sistema de prioridades basado en necesidades fisiológicas.
-- Decisiones influenciadas por personalidad.
-- Integración con mercado autónomo: **parcial/pendiente de ampliación**.
-- Interacciones sociales y formación de relaciones.
+- marcaremos una rutina para los agentes que le servirá de guía para su día a día.
+- esta rutina busca que el agente genere los ingresos minimos vitales que se calcula obteniendo el precio de cada tick de trabajo.
+- el agente guardará un registro de los ingresos por tick que obtiene de cada actividad econimica a la que se ha dedicado.
+- segun la personalidad de cada agente su rutina se amoldará para seguir su proposito.
+- entre los propositos: maximizar ingresos, construir relaciones, buscar el osio, generar ingresos para establecer una familia, entre otros.
+- guardara sus propias rutinas a las que será propenso a seguir.
 
 ---
 
