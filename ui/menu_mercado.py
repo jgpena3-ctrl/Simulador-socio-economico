@@ -22,6 +22,11 @@ class MenuMercado:
         self._boton_cerrar_rect = pygame.Rect(0, 0, 0, 0)
         self._boton_atras_rect = pygame.Rect(0, 0, 0, 0)
         self._items_clickables = []
+        self._filtro_categoria_idx = 0
+        self._filtro_tipo_idx = 0
+        self._filtro_producto_idx = 0
+        self._cantidad_compra = 1
+        self._mensaje_estado = ""
 
     def actualizar_filtros(self, **filtros):
         for clave, valor in filtros.items():
@@ -148,32 +153,83 @@ class MenuMercado:
     def _cambiar_modo(self, modo):
         self.modo = modo
         self.oferta_seleccionada = None
+        self._cantidad_compra = 1
+        self._mensaje_estado = ""
 
     def _dibujar_comprar(self, pantalla):
         font = pygame.font.SysFont(None, 24)
         pantalla.blit(font.render("Comprar (ofertas de venta, menor a mayor)", True, (230, 230, 210)), (self.x + 30, self.y + 70))
 
+        categorias = ["todas"] + self._obtener_categorias_disponibles()
+        tipos = ["todos"] + self._obtener_tipos_disponibles()
+
+        if self._filtro_categoria_idx >= len(categorias):
+            self._filtro_categoria_idx = 0
+        if self._filtro_tipo_idx >= len(tipos):
+            self._filtro_tipo_idx = 0
+
+        categoria_valor = None if categorias[self._filtro_categoria_idx] == "todas" else categorias[self._filtro_categoria_idx]
+        tipo_valor = None if tipos[self._filtro_tipo_idx] == "todos" else tipos[self._filtro_tipo_idx]
+
+        productos = ["todos"] + self.sim.economia.filtrar_productos(categoria=categoria_valor, tipo_alimento=tipo_valor)
+        if self._filtro_producto_idx >= len(productos):
+            self._filtro_producto_idx = 0
+        producto_valor = None if productos[self._filtro_producto_idx] == "todos" else productos[self._filtro_producto_idx]
+
+        self._dibujar_boton_filtro(
+            pantalla,
+            texto=f"Categoría: {categorias[self._filtro_categoria_idx]}",
+            x=self.x + 30,
+            y=self.y + 102,
+            accion=lambda _payload: self._ciclar_filtro("categoria"),
+        )
+        self._dibujar_boton_filtro(
+            pantalla,
+            texto=f"Tipo: {tipos[self._filtro_tipo_idx]}",
+            x=self.x + 300,
+            y=self.y + 102,
+            accion=lambda _payload: self._ciclar_filtro("tipo"),
+        )
+        self._dibujar_boton_filtro(
+            pantalla,
+            texto=f"Producto: {productos[self._filtro_producto_idx]}",
+            x=self.x + 530,
+            y=self.y + 102,
+            accion=lambda _payload: self._ciclar_filtro("producto", productos),
+        )
+
         ofertas = self.sim.economia.listar_ofertas_venta_filtradas(
-            nombre_articulo=self.filtros["nombre_articulo"],
-            categoria=self.filtros["categoria"],
-            tipo_alimento=self.filtros["tipo_alimento"],
+            nombre_articulo=producto_valor,
+            categoria=categoria_valor,
+            tipo_alimento=tipo_valor,
             calidad_min=self.filtros["calidad_min"],
             precio_max=self.filtros["precio_max"],
         )
 
         if not ofertas:
-            pantalla.blit(font.render("No hay ofertas de venta con los filtros actuales.", True, (200, 200, 200)), (self.x + 30, self.y + 110))
+            pantalla.blit(font.render("No hay ofertas de venta con los filtros actuales.", True, (200, 200, 200)), (self.x + 30, self.y + 140))
             return
 
-        y = self.y + 110
+        y = self.y + 140
         for oferta in ofertas[:12]:
             vendedor = self._get_agente_by_id(oferta["agente_id"])
             nombre = vendedor.nombre if vendedor else "Desconocido"
-            texto = f"{oferta['producto']} | {nombre} | {oferta['cantidad']} x {oferta['precio_unitario']} (cal {oferta['calidad']:.1f})"
+            texto = (
+                f"#{oferta['id']} {oferta['producto']} | {nombre} | cant:{oferta['cantidad']} "
+                f"| precio:{oferta['precio_unitario']:.2f} | cal:{oferta['calidad']:.1f}"
+            )
             rect = pygame.Rect(self.x + 30, y, self.ancho - 60, 28)
-            pygame.draw.rect(pantalla, (62, 62, 88), rect, border_radius=4)
+            color = (62, 88, 62) if self.oferta_seleccionada and self.oferta_seleccionada["id"] == oferta["id"] else (62, 62, 88)
+            pygame.draw.rect(pantalla, color, rect, border_radius=4)
             pantalla.blit(font.render(texto, True, (225, 225, 225)), (rect.x + 8, rect.y + 5))
+            self._items_clickables.append({"rect": rect, "accion": self._seleccionar_oferta_compra, "payload": oferta})
             y += 32
+
+        if self.oferta_seleccionada:
+            self._dibujar_panel_compra(pantalla, self.oferta_seleccionada)
+
+        if self._mensaje_estado:
+            pantalla.blit(font.render(self._mensaje_estado, True, (200, 255, 200)), (self.x + 30, self.y + self.alto - 35))
 
     def _dibujar_vender(self, pantalla):
         font = pygame.font.SysFont(None, 24)
@@ -276,6 +332,86 @@ class MenuMercado:
         if not agente:
             return
         self.sim.acciones.accion_cancelar_oferta(agente, payload["id"], payload["tipo"])
+
+    def _dibujar_boton_filtro(self, pantalla, texto, x, y, accion):
+        font = pygame.font.SysFont(None, 22)
+        rect = pygame.Rect(x, y, 240, 28)
+        pygame.draw.rect(pantalla, (58, 70, 95), rect, border_radius=4)
+        pantalla.blit(font.render(texto, True, (230, 230, 235)), (rect.x + 8, rect.y + 5))
+        self._items_clickables.append({"rect": rect, "accion": accion})
+
+    def _ciclar_filtro(self, filtro, productos=None):
+        if filtro == "categoria":
+            self._filtro_categoria_idx += 1
+            self._filtro_producto_idx = 0
+        elif filtro == "tipo":
+            self._filtro_tipo_idx += 1
+            self._filtro_producto_idx = 0
+        elif filtro == "producto":
+            self._filtro_producto_idx += 1
+            if productos is not None and self._filtro_producto_idx >= len(productos):
+                self._filtro_producto_idx = 0
+
+    def _obtener_categorias_disponibles(self):
+        categorias = set()
+        for metadata in self.sim.economia.catalogo_productos.values():
+            categoria = metadata.get("categoria")
+            if categoria:
+                categorias.add(categoria)
+        return sorted(categorias)
+
+    def _obtener_tipos_disponibles(self):
+        tipos = set()
+        for metadata in self.sim.economia.catalogo_productos.values():
+            tipo = metadata.get("tipo_alimento")
+            if tipo:
+                tipos.add(tipo)
+        return sorted(tipos)
+
+    def _seleccionar_oferta_compra(self, oferta):
+        if oferta:
+            self.oferta_seleccionada = oferta
+            self._cantidad_compra = 1
+
+    def _dibujar_panel_compra(self, pantalla, oferta):
+        font = pygame.font.SysFont(None, 22)
+        panel = pygame.Rect(self.x + 30, self.y + self.alto - 130, self.ancho - 60, 90)
+        pygame.draw.rect(pantalla, (42, 65, 48), panel, border_radius=6)
+
+        max_cantidad = max(1, oferta["cantidad"])
+        self._cantidad_compra = min(max(1, self._cantidad_compra), max_cantidad)
+        costo = self._cantidad_compra * oferta["precio_unitario"]
+        texto = f"Selección #{oferta['id']} | cantidad: {self._cantidad_compra} / {max_cantidad} | total: {costo:.2f}"
+        pantalla.blit(font.render(texto, True, (230, 250, 230)), (panel.x + 10, panel.y + 10))
+
+        menos = pygame.Rect(panel.x + 10, panel.y + 40, 30, 30)
+        mas = pygame.Rect(panel.x + 50, panel.y + 40, 30, 30)
+        comprar = pygame.Rect(panel.x + 100, panel.y + 40, 140, 30)
+        pygame.draw.rect(pantalla, (90, 90, 120), menos, border_radius=4)
+        pygame.draw.rect(pantalla, (90, 90, 120), mas, border_radius=4)
+        pygame.draw.rect(pantalla, (70, 120, 80), comprar, border_radius=4)
+        pantalla.blit(font.render("-", True, (245, 245, 255)), (menos.x + 10, menos.y + 5))
+        pantalla.blit(font.render("+", True, (245, 245, 255)), (mas.x + 8, mas.y + 5))
+        pantalla.blit(font.render("Comprar", True, (245, 255, 245)), (comprar.x + 28, comprar.y + 5))
+
+        self._items_clickables.append({"rect": menos, "accion": lambda _payload: self._ajustar_cantidad_compra(-1)})
+        self._items_clickables.append({"rect": mas, "accion": lambda _payload: self._ajustar_cantidad_compra(+1)})
+        self._items_clickables.append({"rect": comprar, "accion": lambda _payload: self._ejecutar_compra(oferta)})
+
+    def _ajustar_cantidad_compra(self, delta):
+        self._cantidad_compra = max(1, self._cantidad_compra + delta)
+
+    def _ejecutar_compra(self, oferta):
+        agente = self.sim.agente_jugador
+        if not agente:
+            self._mensaje_estado = "No hay agente jugador."
+            return
+        resultado = self.sim.acciones.accion_comprar(agente, oferta["id"], self._cantidad_compra)
+        if resultado:
+            self._mensaje_estado = "Compra realizada."
+            self.oferta_seleccionada = None
+        else:
+            self._mensaje_estado = "No se pudo completar la compra."
 
     def _get_agente_by_id(self, agente_id):
         for agente in self.sim.agentes:
