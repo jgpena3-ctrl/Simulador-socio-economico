@@ -64,6 +64,10 @@ class _EconomiaStub:
         _ = (nombre_articulo, categoria, tipo_alimento)
         return ["fruta"]
 
+    def filtrar_productos(self, nombre_articulo=None, categoria=None, tipo_alimento=None):
+        _ = (nombre_articulo, categoria, tipo_alimento)
+        return ["fruta"]
+
     def obtener_info_producto(self, _producto):
         return {
             "estadisticas": {
