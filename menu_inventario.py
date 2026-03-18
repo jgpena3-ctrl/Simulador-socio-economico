@@ -14,6 +14,7 @@ class MenuInventario:
         self.font_titulo = pygame.font.SysFont(None, 32)
         self.font_texto = pygame.font.SysFont(None, 24)
         self.font_pequeno = pygame.font.SysFont(None, 18)
+        self._boton_cerrar_rect = pygame.Rect(0, 0, 0, 0)
 
     def mostrar(self):
         """Abre el menú de inventario"""
@@ -43,6 +44,12 @@ class MenuInventario:
         # Título
         titulo = self.font_titulo.render("INVENTARIO", True, (255, 255, 200))
         pantalla.blit(titulo, (x + 20, y + 15))
+
+        # Botón cerrar
+        self._boton_cerrar_rect = pygame.Rect(x + self.ancho - 45, y + 10, 30, 30)
+        pygame.draw.rect(pantalla, (120, 60, 60), self._boton_cerrar_rect, border_radius=4)
+        texto_cerrar_icono = self.font_texto.render("X", True, (255, 240, 240))
+        pantalla.blit(texto_cerrar_icono, (self._boton_cerrar_rect.x + 9, self._boton_cerrar_rect.y + 5))
 
         # Línea separadora
         pygame.draw.line(pantalla, (100, 100, 150),
@@ -140,4 +147,21 @@ class MenuInventario:
         if tecla == pygame.K_SPACE or tecla == pygame.K_ESCAPE:
             self.ocultar()
             return True
+        return False
+
+    def procesar_clic(self, pos_mouse):
+        """Consume clics del inventario para evitar interacción con el mapa."""
+        if not self.visible:
+            return False
+
+        x, y = self.posicion
+        area_menu = pygame.Rect(x, y, self.ancho, self.alto)
+
+        if self._boton_cerrar_rect.collidepoint(pos_mouse):
+            self.ocultar()
+            return True
+
+        if area_menu.collidepoint(pos_mouse):
+            return True
+
         return False

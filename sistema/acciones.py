@@ -668,7 +668,7 @@ class Acciones:
             oferta = self.simulador.economia.get_oferta_venta(oferta_id)
             if oferta and oferta["agente_id"] == agente.id and oferta["activa"]:
                 # Devolver productos
-                agente.inventario[oferta["producto"]] += oferta["cantidad"]
+                agente.inventario[oferta["producto"]] = agente.inventario.get(oferta["producto"], 0) + oferta["cantidad"]
                 oferta["activa"] = False
                 logger.debug(f"✅ Oferta de venta cancelada, {oferta['cantidad']} {oferta['producto']} devueltos")
                 return True
@@ -678,7 +678,7 @@ class Acciones:
             if oferta and oferta["agente_id"] == agente.id and oferta["activa"]:
                 # Devolver monedas congeladas
                 costo = oferta["precio_maximo"] * oferta["cantidad"]
-                agente.inventario["monedas"] += costo
+                agente.inventario["monedas"] = agente.inventario.get("monedas", 0) + costo
                 if hasattr(agente, 'monedas_reservadas'):
                     agente.monedas_reservadas -= costo
                 oferta["activa"] = False
