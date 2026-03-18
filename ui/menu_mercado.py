@@ -8,6 +8,24 @@ class MenuMercado:
         self.modo = "principal"  # principal, ver_producto, comprar, vender, ofertar
         self.producto_seleccionado = None
         self.oferta_seleccionada = None
+        self.filtros = {
+            "nombre_articulo": None,
+            "categoria": None,
+            "tipo_alimento": None,
+            "calidad_min": None,
+            "precio_max": None,
+            "precio_min": None,
+        }
+
+    def actualizar_filtros(self, **filtros):
+        """Permite que UI y agentes sin UI compartan la misma semántica de filtros."""
+        for clave, valor in filtros.items():
+            if clave in self.filtros:
+                self.filtros[clave] = valor
+
+    def limpiar_filtros(self):
+        for clave in self.filtros:
+            self.filtros[clave] = None
 
     def mostrar(self):
         self.visible = True
@@ -65,8 +83,12 @@ class MenuMercado:
         titulo = font_titulo.render("MERCADO", True, (255, 255, 200))
         pantalla.blit(titulo, (x, y))
 
-        # Lista de productos
-        productos = list(self.sim.economia.estadisticas.keys())
+        # Lista de productos según filtros declarados para mercado
+        productos = self.sim.economia.filtrar_productos(
+            nombre_articulo=self.filtros["nombre_articulo"],
+            categoria=self.filtros["categoria"],
+            tipo_alimento=self.filtros["tipo_alimento"],
+        )
         y_actual = y + 50
 
         for i, producto in enumerate(productos[:15]):
@@ -144,7 +166,13 @@ class MenuMercado:
         font_texto = pygame.font.SysFont(None, 24)
 
         producto = self.producto_seleccionado
-        ofertas = self.sim.economia.buscar_ofertas_venta(producto=producto)
+        ofertas = self.sim.economia.listar_ofertas_venta_filtradas(
+            nombre_articulo=producto,
+            categoria=self.filtros["categoria"],
+            tipo_alimento=self.filtros["tipo_alimento"],
+            calidad_min=self.filtros["calidad_min"],
+            precio_max=self.filtros["precio_max"],
+        )
 
         titulo = font_titulo.render(f"Comprar {producto.capitalize()}", True, (255, 255, 200))
         pantalla.blit(titulo, (x, y))
@@ -174,7 +202,12 @@ class MenuMercado:
         font_texto = pygame.font.SysFont(None, 24)
 
         producto = self.producto_seleccionado
-        ofertas = self.sim.economia.buscar_ofertas_compra(producto=producto)
+        ofertas = self.sim.economia.listar_ofertas_compra_filtradas(
+            nombre_articulo=producto,
+            categoria=self.filtros["categoria"],
+            tipo_alimento=self.filtros["tipo_alimento"],
+            precio_min=self.filtros["precio_min"],
+        )
 
         titulo = font_titulo.render(f"Vender {producto.capitalize()}", True, (255, 255, 200))
         pantalla.blit(titulo, (x, y))

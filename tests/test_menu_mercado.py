@@ -44,6 +44,10 @@ def _cargar_menu_mercado_con_pygame_stub():
 class _EconomiaStub:
     estadisticas = {"fruta": {"precio_promedio": 2.5}}
 
+    def filtrar_productos(self, nombre_articulo=None, categoria=None, tipo_alimento=None):
+        _ = (nombre_articulo, categoria, tipo_alimento)
+        return ["fruta"]
+
     def obtener_info_producto(self, _producto):
         return {
             "estadisticas": {
@@ -57,10 +61,14 @@ class _EconomiaStub:
             "ofertas_compra_activas": 1,
         }
 
-    def buscar_ofertas_venta(self, producto=None):
+    def listar_ofertas_venta_filtradas(self, nombre_articulo=None, categoria=None, tipo_alimento=None, calidad_min=None, precio_max=None):
+        _ = (categoria, tipo_alimento, calidad_min, precio_max)
+        producto = nombre_articulo
         return [{"agente_id": 1, "cantidad": 3, "precio_unitario": 4, "calidad": 1.0, "producto": producto}]
 
-    def buscar_ofertas_compra(self, producto=None):
+    def listar_ofertas_compra_filtradas(self, nombre_articulo=None, categoria=None, tipo_alimento=None, precio_min=None):
+        _ = (categoria, tipo_alimento, precio_min)
+        producto = nombre_articulo
         return [{"agente_id": 2, "cantidad": 2, "precio_maximo": 5, "producto": producto}]
 
 
