@@ -62,11 +62,17 @@ class SistemaEconomico:
         tipo_alimento: Optional[str] = None,
     ) -> None:
         """Registra metadatos para filtros del mercado."""
+<<<<<<< codex/add-mercado-and-menumercado-components
         categoria_final = categoria if categoria is not None else self._inferir_categoria_producto(nombre)
         tipo_final = tipo_alimento if tipo_alimento is not None else self._inferir_tipo_alimento(nombre)
         self.catalogo_productos[nombre] = {
             "categoria": categoria_final,
             "tipo_alimento": tipo_final,
+=======
+        self.catalogo_productos[nombre] = {
+            "categoria": categoria,
+            "tipo_alimento": tipo_alimento,
+>>>>>>> main
         }
 
     def obtener_metadata_producto(self, producto: str) -> dict[str, Optional[str]]:
@@ -99,10 +105,14 @@ class SistemaEconomico:
         self.ofertas_venta.append(oferta)
         self.catalogo_productos.setdefault(
             producto,
+<<<<<<< codex/add-mercado-and-menumercado-components
             {
                 "categoria": self._inferir_categoria_producto(producto),
                 "tipo_alimento": self._inferir_tipo_alimento(producto),
             },
+=======
+            {"categoria": None, "tipo_alimento": None},
+>>>>>>> main
         )
         logger.debug(f"📢 Agente {agente_id} ofrece {cantidad} {producto} a {precio_unitario} monedas")
         return oferta["id"]
@@ -126,10 +136,14 @@ class SistemaEconomico:
         self.ofertas_compra.append(oferta)
         self.catalogo_productos.setdefault(
             producto,
+<<<<<<< codex/add-mercado-and-menumercado-components
             {
                 "categoria": self._inferir_categoria_producto(producto),
                 "tipo_alimento": self._inferir_tipo_alimento(producto),
             },
+=======
+            {"categoria": None, "tipo_alimento": None},
+>>>>>>> main
         )
         logger.debug(f"📢 Agente {agente_id} busca comprar {cantidad} {producto} (max {precio_maximo})")
         return oferta["id"]
@@ -163,6 +177,7 @@ class SistemaEconomico:
 
         return resultados
 
+<<<<<<< codex/add-mercado-and-menumercado-components
     def _inferir_categoria_producto(self, producto: str) -> str:
         p = producto.lower()
         if p in {"fruta", "carne", "pescado", "pan", "vegetal", "cereal", "agua", "comida"}:
@@ -183,6 +198,8 @@ class SistemaEconomico:
             return "verduras"
         return None
 
+=======
+>>>>>>> main
     def buscar_ofertas_venta(
         self,
         producto: Optional[str] = None,
