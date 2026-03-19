@@ -535,10 +535,6 @@ class Acciones:
         # Registrar acción para experiencia
         agente.experiencia["comerciar"] = agente.experiencia.get("comerciar", 0) + 0.1
 
-        # Consumir energía (burocracia también cansa)
-        agente.fisiologia.cansancio += 2
-        agente.fisiologia.hambre += 1
-
         return oferta_id
 
     def accion_publicar_oferta_compra(self, agente: Any, producto: str, cantidad: int, precio_maximo: float) -> int | bool:
@@ -568,8 +564,6 @@ class Acciones:
         logger.debug(f"📢 {agente.nombre} publicó compra: busca {cantidad} {producto} (max {precio_maximo})")
 
         agente.experiencia["comerciar"] = agente.experiencia.get("comerciar", 0) + 0.1
-        agente.fisiologia.cansancio += 2
-        agente.fisiologia.hambre += 1
 
         return oferta_id
 
