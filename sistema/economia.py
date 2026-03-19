@@ -52,7 +52,31 @@ class SistemaEconomico:
         self.ofertas_compra: list[OfertaCompra] = []
         self.historial_transacciones: list[Transaccion] = []
         self.estadisticas: dict[str, EstadisticaProducto] = {}
+        self.catalogo_productos: dict[str, dict[str, Optional[str]]] = {}
         self.simulador = simulador
+
+    def registrar_producto(
+        self,
+        nombre: str,
+        categoria: Optional[str] = None,
+        tipo_alimento: Optional[str] = None,
+    ) -> None:
+        """Registra metadatos para filtros del mercado."""
+        categoria_final = categoria if categoria is not None else self._inferir_categoria_producto(nombre)
+        tipo_final = tipo_alimento if tipo_alimento is not None else self._inferir_tipo_alimento(nombre)
+        self.catalogo_productos[nombre] = {
+            "categoria": categoria_final,
+            "tipo_alimento": tipo_final,
+        }
+
+    def obtener_metadata_producto(self, producto: str) -> dict[str, Optional[str]]:
+        return self.catalogo_productos.get(
+            producto,
+            {
+                "categoria": None,
+                "tipo_alimento": None,
+            },
+        )
 
     def publicar_oferta_venta(
         self,
@@ -73,6 +97,13 @@ class SistemaEconomico:
             "activa": True,
         }
         self.ofertas_venta.append(oferta)
+        self.catalogo_productos.setdefault(
+            producto,
+            {
+                "categoria": self._inferir_categoria_producto(producto),
+                "tipo_alimento": self._inferir_tipo_alimento(producto),
+            },
+        )
         logger.debug(f"📢 Agente {agente_id} ofrece {cantidad} {producto} a {precio_unitario} monedas")
         return oferta["id"]
 
@@ -93,8 +124,64 @@ class SistemaEconomico:
             "activa": True,
         }
         self.ofertas_compra.append(oferta)
+        self.catalogo_productos.setdefault(
+            producto,
+            {
+                "categoria": self._inferir_categoria_producto(producto),
+                "tipo_alimento": self._inferir_tipo_alimento(producto),
+            },
+        )
         logger.debug(f"📢 Agente {agente_id} busca comprar {cantidad} {producto} (max {precio_maximo})")
         return oferta["id"]
+
+    def filtrar_productos(
+        self,
+        nombre_articulo: Optional[str] = None,
+        categoria: Optional[str] = None,
+        tipo_alimento: Optional[str] = None,
+    ) -> list[str]:
+        """
+        Devuelve productos del mercado según filtros declarados en README.
+        Incluye productos con actividad histórica y/o ofertas activas.
+        """
+        productos = set(self.catalogo_productos.keys()) | set(self.estadisticas.keys())
+        productos |= {oferta["producto"] for oferta in self.ofertas_venta}
+        productos |= {oferta["producto"] for oferta in self.ofertas_compra}
+
+        resultados: list[str] = []
+        nombre_normalizado = nombre_articulo.lower() if nombre_articulo else None
+
+        for producto in sorted(productos):
+            metadata = self.obtener_metadata_producto(producto)
+            if nombre_normalizado and nombre_normalizado not in producto.lower():
+                continue
+            if categoria is not None and metadata["categoria"] != categoria:
+                continue
+            if tipo_alimento is not None and metadata["tipo_alimento"] != tipo_alimento:
+                continue
+            resultados.append(producto)
+
+        return resultados
+
+    def _inferir_categoria_producto(self, producto: str) -> str:
+        p = producto.lower()
+        if p in {"fruta", "carne", "pescado", "pan", "vegetal", "cereal", "agua", "comida"}:
+            return "alimento"
+        if p in {"hacha", "pico", "lanza", "arco", "herramientas"}:
+            return "herramienta"
+        return "material"
+
+    def _inferir_tipo_alimento(self, producto: str) -> Optional[str]:
+        p = producto.lower()
+        if p in {"fruta"}:
+            return "frutas"
+        if p in {"carne", "pescado"}:
+            return "carnes"
+        if p in {"pan", "cereal"}:
+            return "carbohidratos"
+        if p in {"vegetal"}:
+            return "verduras"
+        return None
 
     def buscar_ofertas_venta(
         self,
@@ -115,6 +202,28 @@ class SistemaEconomico:
             resultados.append(oferta)
         return sorted(resultados, key=lambda x: x["precio_unitario"])
 
+    def listar_ofertas_venta_filtradas(
+        self,
+        nombre_articulo: Optional[str] = None,
+        categoria: Optional[str] = None,
+        tipo_alimento: Optional[str] = None,
+        calidad_min: Optional[float] = None,
+        precio_max: Optional[float] = None,
+    ) -> list[OfertaVenta]:
+        """Lista ofertas de venta ordenadas de menor a mayor precio con filtros de producto."""
+        productos_filtrados = set(
+            self.filtrar_productos(
+                nombre_articulo=nombre_articulo,
+                categoria=categoria,
+                tipo_alimento=tipo_alimento,
+            )
+        )
+        return [
+            oferta
+            for oferta in self.buscar_ofertas_venta(precio_max=precio_max, calidad_min=calidad_min)
+            if oferta["producto"] in productos_filtrados
+        ]
+
     def get_oferta_venta(self, oferta_id: int) -> Optional[OfertaVenta]:
         return next((oferta for oferta in self.ofertas_venta if oferta["id"] == oferta_id), None)
 
@@ -133,6 +242,27 @@ class SistemaEconomico:
                 continue
             resultados.append(oferta)
         return sorted(resultados, key=lambda x: x["precio_maximo"], reverse=True)
+
+    def listar_ofertas_compra_filtradas(
+        self,
+        nombre_articulo: Optional[str] = None,
+        categoria: Optional[str] = None,
+        tipo_alimento: Optional[str] = None,
+        precio_min: Optional[float] = None,
+    ) -> list[OfertaCompra]:
+        """Lista ofertas de compra ordenadas de mayor a menor precio con filtros de producto."""
+        productos_filtrados = set(
+            self.filtrar_productos(
+                nombre_articulo=nombre_articulo,
+                categoria=categoria,
+                tipo_alimento=tipo_alimento,
+            )
+        )
+        return [
+            oferta
+            for oferta in self.buscar_ofertas_compra(precio_min=precio_min)
+            if oferta["producto"] in productos_filtrados
+        ]
 
     def get_oferta_compra(self, oferta_id: int) -> Optional[OfertaCompra]:
         return next((oferta for oferta in self.ofertas_compra if oferta["id"] == oferta_id), None)

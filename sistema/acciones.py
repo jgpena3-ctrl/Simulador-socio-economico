@@ -49,6 +49,13 @@ class Acciones:
         self.TICKS_ACCION = balance.TICKS_ACCION_INTERNA
         self.TICKS_COMPLETO = balance.TICKS_COMPLETO
 
+    def _get_agente_by_id(self, agente_id: int) -> Any:
+        """Obtiene un agente por ID en la simulación actual."""
+        for agente in self.simulador.agentes:
+            if agente.id == agente_id:
+                return agente
+        return None
+
 
     def _accion_dormir(self, agente: Any = None) -> bool:
         """Inicia actividad de dormir."""
@@ -668,7 +675,7 @@ class Acciones:
             oferta = self.simulador.economia.get_oferta_venta(oferta_id)
             if oferta and oferta["agente_id"] == agente.id and oferta["activa"]:
                 # Devolver productos
-                agente.inventario[oferta["producto"]] += oferta["cantidad"]
+                agente.inventario[oferta["producto"]] = agente.inventario.get(oferta["producto"], 0) + oferta["cantidad"]
                 oferta["activa"] = False
                 logger.debug(f"✅ Oferta de venta cancelada, {oferta['cantidad']} {oferta['producto']} devueltos")
                 return True
@@ -678,7 +685,7 @@ class Acciones:
             if oferta and oferta["agente_id"] == agente.id and oferta["activa"]:
                 # Devolver monedas congeladas
                 costo = oferta["precio_maximo"] * oferta["cantidad"]
-                agente.inventario["monedas"] += costo
+                agente.inventario["monedas"] = agente.inventario.get("monedas", 0) + costo
                 if hasattr(agente, 'monedas_reservadas'):
                     agente.monedas_reservadas -= costo
                 oferta["activa"] = False

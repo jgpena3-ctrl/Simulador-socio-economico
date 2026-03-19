@@ -53,6 +53,10 @@ class BootstrapSystem:
         logger.debug("\n=== INICIALIZANDO MERCADO DE PRUEBA ===")
 
         productos = ["manzana", "pan", "madera", "carne", "piedra"]
+        # Inventario base del jugador para poder probar venta desde el primer arranque.
+        sim.agente_jugador.inventario["madera"] = max(sim.agente_jugador.inventario.get("madera", 0), 6)
+        sim.agente_jugador.inventario["carne"] = sim.agente_jugador.inventario.get("carne", 0) + 3
+        sim.agente_jugador.inventario["fruta"] = sim.agente_jugador.inventario.get("fruta", 0) + 4
 
         for i in range(5):
             agentes_npc = [a for a in sim.agentes if a != sim.agente_jugador]
@@ -68,6 +72,20 @@ class BootstrapSystem:
 
             logger.debug(
                 f"  Oferta {i + 1}: {agente.nombre} vende {cantidad} {producto} a {precio} monedas"
+            )
+
+        # También generar demandas de compra para probar el flujo de venta.
+        for i in range(5):
+            agentes_npc = [a for a in sim.agentes if a != sim.agente_jugador]
+            if not agentes_npc:
+                break
+            agente = np.random.choice(agentes_npc)
+            producto = np.random.choice(productos)
+            cantidad = np.random.randint(1, 6)
+            precio_maximo = np.random.randint(6, 35)
+            sim.economia.publicar_oferta_compra(agente.id, producto, cantidad, precio_maximo)
+            logger.debug(
+                f"  Demanda {i + 1}: {agente.nombre} compra {cantidad} {producto} hasta {precio_maximo} monedas"
             )
 
         logger.debug("=== MERCADO INICIALIZADO ===\n")
