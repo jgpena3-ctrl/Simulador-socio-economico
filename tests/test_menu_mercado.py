@@ -92,7 +92,7 @@ class _EconomiaStub:
     def listar_ofertas_compra_filtradas(self, nombre_articulo=None, categoria=None, tipo_alimento=None, precio_min=None):
         _ = (categoria, tipo_alimento, precio_min)
         producto = nombre_articulo
-        return [{"agente_id": 2, "cantidad": 2, "precio_maximo": 5, "producto": producto}]
+        return [{"id": 8, "agente_id": 2, "cantidad": 2, "precio_maximo": 5, "producto": producto or "madera"}]
 
 
 def test_dibujar_soporta_todos_los_modos_de_menu_mercado():
@@ -159,3 +159,44 @@ def test_busqueda_compra_coincide_por_vendedor_categoria_o_producto():
     assert menu._coincide_busqueda(oferta, "Vendedor")
     menu._busqueda_texto = "fru"
     assert menu._coincide_busqueda(oferta, "Vendedor")
+
+
+def test_venta_ejecuta_accion_con_oferta_seleccionada():
+    menu_module = _cargar_menu_mercado_con_pygame_stub()
+    llamadas = []
+    sim = SimpleNamespace(
+        economia=_EconomiaStub(),
+        agentes=[SimpleNamespace(id=2, nombre="Comprador")],
+        agente_jugador=SimpleNamespace(id=1, inventario={"madera": 5, "monedas": 10}),
+        acciones=SimpleNamespace(
+            accion_cancelar_oferta=lambda *_args, **_kwargs: True,
+            accion_comprar=lambda *_args, **_kwargs: True,
+            accion_vender=lambda agente, oferta_id, cantidad: llamadas.append((agente.id, oferta_id, cantidad)) or True,
+        ),
+    )
+    menu = menu_module.MenuMercado(sim)
+    menu._cantidad_venta = 2
+    menu._ejecutar_venta({"id": 8, "cantidad": 4, "precio_maximo": 5, "producto": "madera"})
+    assert llamadas == [(1, 8, 2)]
+    assert menu._mensaje_estado == "Venta realizada."
+
+
+def test_publicar_ofertas_compra_y_venta_desde_menu():
+    menu_module = _cargar_menu_mercado_con_pygame_stub()
+    registro = {"venta": 0, "compra": 0}
+    sim = SimpleNamespace(
+        economia=_EconomiaStub(),
+        agentes=[SimpleNamespace(id=2, nombre="Comprador")],
+        agente_jugador=SimpleNamespace(id=1, inventario={"madera": 5, "monedas": 100}),
+        acciones=SimpleNamespace(
+            accion_cancelar_oferta=lambda *_args, **_kwargs: True,
+            accion_comprar=lambda *_args, **_kwargs: True,
+            accion_vender=lambda *_args, **_kwargs: True,
+            accion_publicar_oferta_venta=lambda *_args, **_kwargs: registro.__setitem__("venta", 1) or 12,
+            accion_publicar_oferta_compra=lambda *_args, **_kwargs: registro.__setitem__("compra", 1) or 13,
+        ),
+    )
+    menu = menu_module.MenuMercado(sim)
+    menu._publicar_oferta_venta("madera")
+    menu._publicar_oferta_compra("carne")
+    assert registro == {"venta": 1, "compra": 1}

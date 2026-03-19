@@ -48,7 +48,6 @@ def test_listar_ofertas_filtradas_respeta_orden_y_filtros():
 
     assert [venta["precio_unitario"] for venta in ventas] == [5]
     assert [compra["precio_maximo"] for compra in compras] == [10, 6]
-<<<<<<< codex/add-mercado-and-menumercado-components
 
 
 def test_publicar_oferta_autocompleta_categoria_si_no_se_registro_producto():
@@ -59,5 +58,3 @@ def test_publicar_oferta_autocompleta_categoria_si_no_se_registro_producto():
 
     assert metadata["categoria"] == "alimento"
     assert metadata["tipo_alimento"] == "carnes"
-=======
->>>>>>> main
