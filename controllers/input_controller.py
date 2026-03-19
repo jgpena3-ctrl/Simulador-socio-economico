@@ -17,7 +17,7 @@ class InputController:
         if evento.type == pygame.QUIT:
             sim.ejecutando = False
         elif evento.type == pygame.KEYDOWN:
-            self.manejar_teclas(evento.key, True)
+            self.manejar_teclas(evento.key, True, getattr(evento, "unicode", ""))
         elif evento.type == pygame.KEYUP:
             self.manejar_teclas(evento.key, False)
         elif evento.type == pygame.MOUSEBUTTONDOWN:
@@ -28,11 +28,14 @@ class InputController:
             elif evento.y < 0:
                 sim.camara.zoom_out()
 
-    def manejar_teclas(self, tecla, presionada=True):
+    def manejar_teclas(self, tecla, presionada=True, texto=""):
         sim = self.simulador
 
         if tecla in sim.teclas_presionadas:
             sim.teclas_presionadas[tecla] = presionada
+
+        if sim.menu_mercado.visible and sim.menu_mercado.procesar_eventos_teclado(tecla, texto):
+            return
 
         if sim.menu_inventario.visible:
             sim.menu_inventario.procesar_tecla(tecla)
@@ -67,11 +70,19 @@ class InputController:
             sim.camara.centrar_en(q * 1.5, r * math.sqrt(3))
             logger.debug("Centrado en jugador")
         elif tecla == pygame.K_ESCAPE:
-            sim.ejecutando = False
+            if sim.menu.visible:
+                sim.menu.ocultar()
+            logger.debug("ESC: cerrar menús contextuales (no cierra el juego)")
 
     def manejar_clic_mouse(self, evento):
         sim = self.simulador
         if evento.button == 1:
+            if sim.menu_mercado.visible and sim.menu_mercado.procesar_clic(evento.pos):
+                return
+
+            if sim.menu_inventario.visible and sim.menu_inventario.procesar_clic(evento.pos):
+                return
+
             if sim.menu.procesar_clic(evento.pos):
                 return
 
