@@ -48,3 +48,16 @@ def test_listar_ofertas_filtradas_respeta_orden_y_filtros():
 
     assert [venta["precio_unitario"] for venta in ventas] == [5]
     assert [compra["precio_maximo"] for compra in compras] == [10, 6]
+<<<<<<< codex/add-mercado-and-menumercado-components
+
+
+def test_publicar_oferta_autocompleta_categoria_si_no_se_registro_producto():
+    economia = SistemaEconomico(SimpleNamespace(tick=2))
+    economia.publicar_oferta_venta(agente_id=9, producto="carne", cantidad=1, precio_unitario=7, calidad=1.0)
+
+    metadata = economia.obtener_metadata_producto("carne")
+
+    assert metadata["categoria"] == "alimento"
+    assert metadata["tipo_alimento"] == "carnes"
+=======
+>>>>>>> main

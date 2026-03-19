@@ -81,6 +81,9 @@ class _EconomiaStub:
             "ofertas_compra_activas": 1,
         }
 
+    def obtener_metadata_producto(self, producto):
+        return self.catalogo_productos.get(producto, {"categoria": None, "tipo_alimento": None})
+
     def listar_ofertas_venta_filtradas(self, nombre_articulo=None, categoria=None, tipo_alimento=None, calidad_min=None, precio_max=None):
         _ = (categoria, tipo_alimento, calidad_min, precio_max)
         producto = nombre_articulo
@@ -137,3 +140,22 @@ def test_comprar_ejecuta_accion_con_oferta_seleccionada():
 
     assert llamadas == [(1, 7, 2)]
     assert menu._mensaje_estado == "Compra realizada."
+
+
+def test_busqueda_compra_coincide_por_vendedor_categoria_o_producto():
+    menu_module = _cargar_menu_mercado_con_pygame_stub()
+    sim = SimpleNamespace(
+        economia=_EconomiaStub(),
+        agentes=[SimpleNamespace(id=1, nombre="Vendedor")],
+        agente_jugador=SimpleNamespace(id=1, inventario={"monedas": 99}),
+        acciones=SimpleNamespace(accion_cancelar_oferta=lambda *_args, **_kwargs: True, accion_comprar=lambda *_args, **_kwargs: True),
+    )
+    menu = menu_module.MenuMercado(sim)
+    oferta = {"id": 7, "agente_id": 1, "cantidad": 3, "precio_unitario": 4.0, "calidad": 1.0, "producto": "fruta"}
+
+    menu._busqueda_texto = "vende"
+    assert menu._coincide_busqueda(oferta, "Vendedor")
+    menu._busqueda_texto = "alimento"
+    assert menu._coincide_busqueda(oferta, "Vendedor")
+    menu._busqueda_texto = "fru"
+    assert menu._coincide_busqueda(oferta, "Vendedor")

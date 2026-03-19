@@ -27,6 +27,7 @@ class MenuMercado:
         self._filtro_producto_idx = 0
         self._cantidad_compra = 1
         self._mensaje_estado = ""
+        self._busqueda_texto = ""
 
     def actualizar_filtros(self, **filtros):
         for clave, valor in filtros.items():
@@ -47,7 +48,7 @@ class MenuMercado:
         self.visible = False
         self._items_clickables = []
 
-    def procesar_eventos_teclado(self, tecla):
+    def procesar_eventos_teclado(self, tecla, texto=""):
         """Solo consume ESC para volver atrás dentro del menú."""
         if not self.visible:
             return False
@@ -59,6 +60,14 @@ class MenuMercado:
                 self.modo = "principal"
                 self.oferta_seleccionada = None
             return True
+
+        if self.modo == "comprar":
+            if tecla == pygame.K_BACKSPACE:
+                self._busqueda_texto = self._busqueda_texto[:-1]
+                return True
+            if texto and texto.isprintable():
+                self._busqueda_texto += texto.lower()
+                return True
 
         return False
 
@@ -155,6 +164,7 @@ class MenuMercado:
         self.oferta_seleccionada = None
         self._cantidad_compra = 1
         self._mensaje_estado = ""
+        self._busqueda_texto = ""
 
     def _dibujar_comprar(self, pantalla):
         font = pygame.font.SysFont(None, 24)
@@ -197,6 +207,8 @@ class MenuMercado:
             y=self.y + 102,
             accion=lambda _payload: self._ciclar_filtro("producto", productos),
         )
+        texto_busqueda = f"Búsqueda: {self._busqueda_texto or '(escribe para filtrar)'}"
+        pantalla.blit(font.render(texto_busqueda, True, (215, 215, 215)), (self.x + 30, self.y + 132))
 
         ofertas = self.sim.economia.listar_ofertas_venta_filtradas(
             nombre_articulo=producto_valor,
@@ -214,6 +226,8 @@ class MenuMercado:
         for oferta in ofertas[:12]:
             vendedor = self._get_agente_by_id(oferta["agente_id"])
             nombre = vendedor.nombre if vendedor else "Desconocido"
+            if self._busqueda_texto and not self._coincide_busqueda(oferta, nombre):
+                continue
             texto = (
                 f"#{oferta['id']} {oferta['producto']} | {nombre} | cant:{oferta['cantidad']} "
                 f"| precio:{oferta['precio_unitario']:.2f} | cal:{oferta['calidad']:.1f}"
@@ -367,6 +381,22 @@ class MenuMercado:
             if tipo:
                 tipos.add(tipo)
         return sorted(tipos)
+
+    def _coincide_busqueda(self, oferta, nombre_vendedor):
+        termino = self._busqueda_texto.strip().lower()
+        if not termino:
+            return True
+        metadata = self.sim.economia.obtener_metadata_producto(oferta["producto"])
+        categoria = (metadata.get("categoria") or "").lower()
+        tipo = (metadata.get("tipo_alimento") or "").lower()
+        producto = oferta["producto"].lower()
+        vendedor = nombre_vendedor.lower()
+        return (
+            termino in producto
+            or termino in categoria
+            or termino in tipo
+            or termino in vendedor
+        )
 
     def _seleccionar_oferta_compra(self, oferta):
         if oferta:

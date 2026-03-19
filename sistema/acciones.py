@@ -49,6 +49,13 @@ class Acciones:
         self.TICKS_ACCION = balance.TICKS_ACCION_INTERNA
         self.TICKS_COMPLETO = balance.TICKS_COMPLETO
 
+    def _get_agente_by_id(self, agente_id: int) -> Any:
+        """Obtiene un agente por ID en la simulación actual."""
+        for agente in self.simulador.agentes:
+            if agente.id == agente_id:
+                return agente
+        return None
+
 
     def _accion_dormir(self, agente: Any = None) -> bool:
         """Inicia actividad de dormir."""

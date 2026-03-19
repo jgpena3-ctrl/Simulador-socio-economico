@@ -14,6 +14,7 @@ def _cargar_input_controller_con_pygame_stub():
         MOUSEBUTTONDOWN=3,
         MOUSEWHEEL=4,
         K_ESCAPE=27,
+        K_BACKSPACE=8,
         K_p=112,
         K_SPACE=32,
         K_c=99,
@@ -33,7 +34,7 @@ def test_escape_no_cierra_juego_si_hay_menu_abierto():
 
     sim = SimpleNamespace(
         teclas_presionadas={},
-        menu_mercado=SimpleNamespace(visible=False, procesar_eventos_teclado=lambda _tecla: False),
+        menu_mercado=SimpleNamespace(visible=False, procesar_eventos_teclado=lambda _tecla, _texto="": False),
         menu_inventario=SimpleNamespace(visible=False, procesar_tecla=lambda _tecla: False),
         menu=SimpleNamespace(visible=True, ocultar=lambda: setattr(sim.menu, "visible", False)),
         ejecutando=True,
@@ -55,7 +56,7 @@ def test_clic_inventario_visible_se_consume_y_no_llega_al_mapa():
     registro = {"menu_procesado": False, "mapa_mostrado": False}
 
     sim = SimpleNamespace(
-        menu_mercado=SimpleNamespace(visible=False, procesar_clic=lambda _pos: False),
+        menu_mercado=SimpleNamespace(visible=False, procesar_clic=lambda _pos: False, procesar_eventos_teclado=lambda _tecla, _texto="": False),
         menu_inventario=SimpleNamespace(visible=True, procesar_clic=lambda _pos: True, procesar_tecla=lambda _tecla: False),
         menu=SimpleNamespace(
             procesar_clic=lambda _pos: registro.__setitem__("menu_procesado", True),

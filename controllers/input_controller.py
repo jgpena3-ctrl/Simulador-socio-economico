@@ -17,7 +17,7 @@ class InputController:
         if evento.type == pygame.QUIT:
             sim.ejecutando = False
         elif evento.type == pygame.KEYDOWN:
-            self.manejar_teclas(evento.key, True)
+            self.manejar_teclas(evento.key, True, getattr(evento, "unicode", ""))
         elif evento.type == pygame.KEYUP:
             self.manejar_teclas(evento.key, False)
         elif evento.type == pygame.MOUSEBUTTONDOWN:
@@ -28,13 +28,13 @@ class InputController:
             elif evento.y < 0:
                 sim.camara.zoom_out()
 
-    def manejar_teclas(self, tecla, presionada=True):
+    def manejar_teclas(self, tecla, presionada=True, texto=""):
         sim = self.simulador
 
         if tecla in sim.teclas_presionadas:
             sim.teclas_presionadas[tecla] = presionada
 
-        if sim.menu_mercado.visible and sim.menu_mercado.procesar_eventos_teclado(tecla):
+        if sim.menu_mercado.visible and sim.menu_mercado.procesar_eventos_teclado(tecla, texto):
             return
 
         if sim.menu_inventario.visible:
